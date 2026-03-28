@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "367336022614",
+    "project_id": "ceylonmarketplace-38df8",
+    "storage_bucket": "ceylonmarketplace-38df8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367336022614:android:168fb83a87640c4ee351f7",
+        "android_client_info": {
+          "package_name": "com.example.ceylonmarketplace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5Mc_RfqKzFGILmMKpwcGvQzUBAxGrJO8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
