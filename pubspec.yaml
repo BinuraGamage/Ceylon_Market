@@ -24,6 +24,9 @@ dependencies:
   # Utils
   equatable: ^2.0.5
   uuid: ^4.3.3
+  image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
