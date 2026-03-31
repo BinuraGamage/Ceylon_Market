@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF1B3A5C);
-  static const Color secondary = Color(0xFF2471A3);
-  static const Color accent = Color(0xFF117A65);
-  static const Color background = Color(0xFFF4F6F7);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color error = Color(0xFF922B21);
-  static const Color warning = Color(0xFFCA6F1E);
-  static const Color success = Color(0xFF1E8449);
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF555555);
-  static const Color textHint = Color(0xFF999999);
-  static const Color divider = Color(0xFFCCCCCC);
-  static const Color lightBlue = Color(0xFFD6EAF8);
+  // ── Core Palette ──────────────────────────────────────────────────────────
+  static const Color primary     = Color(0xFFC67C4E); // Warm brown — buttons, icons
+  static const Color background  = Color(0xFFF6EBE5); // Warm cream — all screens
+  static const Color surface     = Color(0xFFFFFFFF); // White — cards, inputs
+  static const Color error       = Color(0xFFED5151); // Coral red — errors, alerts
+  static const Color accent      = Color(0xFFC67C4E); // Same as primary for now
+
+  // ── Text ──────────────────────────────────────────────────────────────────
+  static const Color textPrimary   = Color(0xFF1A1A1A);
+  static const Color textSecondary = Color(0xFF888888);
+  static const Color textHint      = Color(0xFFBBBBBB);
+  static const Color textOnPrimary = Color(0xFFFFFFFF); // White text on brown buttons
+
+  // ── UI Elements ───────────────────────────────────────────────────────────
+  static const Color divider      = Color(0xFFE8D8D0);
+  static const Color cardShadow   = Color(0x1AC67C4E); // Subtle brown shadow
+  static const Color priceColor   = Color(0xFFC67C4E); // LKR price text
+  static const Color starColor    = Color(0xFFFFC107); // Star ratings
+  static const Color navActive    = Color(0xFFC67C4E); // Bottom nav active icon
+  static const Color navInactive  = Color(0xFFBBBBBB); // Bottom nav inactive
 }
