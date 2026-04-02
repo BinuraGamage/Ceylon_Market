@@ -4,15 +4,17 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/home/screens/customer_home_screen.dart';
-import '../../features/auth/screens/seller_home_stub.dart';
 import '../../features/auth/screens/designer_home_stub.dart';
 import '../../features/auth/screens/admin_dashboard_stub.dart';
 import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
 import '../../providers/auth_provider.dart';
+import '../../features/shop/screens/seller_register_screen.dart';
+import '../../features/shop/screens/seller_dashboard_screen.dart';
+import '../../features/shop/screens/seller_insights_screen.dart';
+import '../../features/shop/screens/store_room_screen.dart';
 // import '../../features/home/screens/category_browse_screen.dart'; // M2 to add
-// import '../../features/shop/screens/shop_screen.dart';             // M3 to add
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
@@ -32,31 +34,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authStateProvider);
       final currentUser = ref.read(currentUserProvider);
 
-      final isOnAuthScreen = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      final location = state.matchedLocation;
+      final isOnAuthScreen = location == '/login' || location == '/register';
 
       // Still loading Firebase auth — wait
       if (authState.isLoading) return null;
 
       final isLoggedIn = authState.value != null;
 
-      // Not logged in — go to login
+      // Not logged in — send to login
       if (!isLoggedIn) {
         return isOnAuthScreen ? null : '/login';
       }
 
-      // Logged in but currentUser not loaded yet — wait
+      // Logged in but user doc not loaded yet — wait
       if (currentUser == null) return null;
 
-      // Logged in and on auth screen — redirect to correct home
+      // Logged in and on an auth screen — redirect to their home
       if (isOnAuthScreen) {
         return _homeRouteForRole(currentUser.role);
       }
 
-      // Already on correct screen — do nothing
+      // ── Role guards ──────────────────────────────────────────────────────
+      // Prevent non-sellers from accessing seller-only routes
+      final isSellerRoute = location.startsWith('/seller');
+      if (isSellerRoute && currentUser.role != 'seller') {
+        return _homeRouteForRole(currentUser.role);
+      }
+
+      // Prevent non-admins from accessing the admin panel
+      if (location.startsWith('/admin') && currentUser.role != 'admin') {
+        return _homeRouteForRole(currentUser.role);
+      }
+
       return null;
     },
     routes: [
+      // ── Auth ─────────────────────────────────────────────────────────────
       GoRoute(
         name: 'login',
         path: '/login',
@@ -67,49 +81,82 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
+
+      // ── Customer (M2) ─────────────────────────────────────────────────────
       GoRoute(
         name: 'customer-home',
         path: '/customer',
         builder: (context, state) => const CustomerHomeScreen(),
       ),
+
+      // ── Seller (M3) ───────────────────────────────────────────────────────
       GoRoute(
-        name: 'seller-home',
-        path: '/seller',
-        builder: (context, state) => const SellerHomeStub(),
+        name: 'seller-register',
+        path: '/seller/register',
+        builder: (context, state) => const SellerRegisterScreen(),
       ),
+      GoRoute(
+        name: 'seller-dashboard',
+        path: '/seller/dashboard',
+        builder: (context, state) => const SellerDashboardScreen(),
+      ),
+      GoRoute(
+        name: 'seller-insights',
+        path: '/seller/insights',
+        builder: (context, state) => const SellerInsightsScreen(),
+      ),
+
+      // ── Shop / Store Room (M3 — public) ──────────────────────────────────
+      GoRoute(
+        name: 'shop',
+        path: '/shop/:id',
+        builder: (context, state) =>
+            StoreRoomScreen(shopId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        name: 'shop-about',
+        path: '/shop/:id/about',
+        builder: (context, state) =>
+            StoreRoomScreen(shopId: state.pathParameters['id']!),
+      ),
+
+      // ── Designer (M6) ────────────────────────────────────────────────────
       GoRoute(
         name: 'designer-home',
         path: '/designer',
         builder: (context, state) => const DesignerHomeStub(),
       ),
+
+      // ── Admin ────────────────────────────────────────────────────────────
       GoRoute(
         name: 'admin',
         path: '/admin',
         builder: (context, state) => const AdminDashboardStub(),
       ),
+
+      // ── Products (M4) ────────────────────────────────────────────────────
       GoRoute(
         name: 'product-detail',
         path: '/product/:id',
         builder: (context, state) => ProductDetailScreen(
           productId: state.pathParameters['id']!,
-         // M6 passes customizationWidget via state.extra when product.customizable == true
+          // M6 passes customizationWidget via state.extra when product.customizable == true
           customizationWidget: state.extra as Widget?,
         ),
       ),
- 
+
+      // ── Search (M2) ───────────────────────────────────────────────────────
       GoRoute(
         name: 'search',
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
- 
       GoRoute(
         name: 'image-search',
         path: '/search/image',
         builder: (context, state) => const ImageSearchScreen(),
       ),
- 
-      
+
       /*
       // M2 to add:
       GoRoute(
@@ -119,29 +166,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           category: state.pathParameters['name']!,
         ),
       ),
-      // M3 to add:
-      // Shop route — M3 will own the ShopScreen widget; M2 just registers the route.
-      GoRoute(
-       name: 'shop',
-       path: '/shop/:id',
-       builder: (context, state) => ShopScreen(
-         shopId: state.pathParameters['id']!,
-        ),
-    ),
-     */
+      */
     ],
   );
 });
 
+/// Maps a user role to their default landing route.
 String _homeRouteForRole(String? role) {
   switch (role) {
     case 'seller':
-      return '/seller';
+      return '/seller/dashboard'; // M3 — SellerDashboardScreen
     case 'designer':
       return '/designer';
     case 'admin':
       return '/admin';
     default:
-      return '/customer';
+      return '/customer'; // M2 — CustomerHomeScreen
   }
 }
