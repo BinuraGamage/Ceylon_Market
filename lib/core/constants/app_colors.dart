@@ -5,6 +5,10 @@ class AppColors {
   static const Color primary     = Color(0xFFC67C4E); // Warm brown — buttons, icons
   static const Color background  = Color(0xFFF6EBE5); // Warm cream — all screens
   static const Color surface     = Color(0xFFFFFFFF); // White — cards, inputs
+  static const Color border = Color(0xFFE2D5C8);     // Subtle borders
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFFA726);
+  static const Color info = Color(0xFF1565C0);
   static const Color error       = Color(0xFFED5151); // Coral red — errors, alerts
   static const Color accent      = Color(0xFFC67C4E); // Same as primary for now
 
@@ -21,4 +25,6 @@ class AppColors {
   static const Color starColor    = Color(0xFFFFC107); // Star ratings
   static const Color navActive    = Color(0xFFC67C4E); // Bottom nav active icon
   static const Color navInactive  = Color(0xFFBBBBBB); // Bottom nav inactive
+  static const Color star = Color(0xFFFFC107); // Star rating yellow
+
 }

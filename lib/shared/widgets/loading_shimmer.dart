@@ -48,11 +48,8 @@ class ShimmerProductRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: count,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (_, __) => const LoadingShimmer(
-          height: 220,
-          width: 160,
-          borderRadius: 12,
-        ),
+        itemBuilder: (_, __) =>
+            const LoadingShimmer(height: 220, width: 160, borderRadius: 12),
       ),
     );
   }
@@ -82,8 +79,9 @@ class ShimmerListTiles extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   LoadingShimmer(
-                      height: 14,
-                      width: MediaQuery.of(context).size.width * 0.5),
+                    height: 14,
+                    width: MediaQuery.of(context).size.width * 0.5,
+                  ),
                   const SizedBox(height: 6),
                   const LoadingShimmer(height: 12, width: 80),
                   const SizedBox(height: 6),
