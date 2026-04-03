@@ -29,6 +29,9 @@ class CloudinaryService {
   static String get _uploadUrl =>
       'https://api.cloudinary.com/v1_1/$_cloudName/image/upload';
 
+  static String get _uploadVideoUrl =>
+      'https://api.cloudinary.com/v1_1/$_cloudName/video/upload';
+
   // ── Public API ────────────────────────────────────────────────────────
 
   /// Compresses [file] and uploads it to Cloudinary.
@@ -97,6 +100,48 @@ class CloudinaryService {
   /// Convenience: upload a shop banner.
   Future<String> uploadBanner(String shopId, File file) =>
       uploadImage(file: file, publicId: '$shopId/banner', quality: 80);
+
+  /// Uploads a video to Cloudinary.
+  /// publicId format: {shopId}/videos/{timestamp}
+  Future<String> uploadVideo(String shopId, File file) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final request = http.MultipartRequest('POST', Uri.parse(_uploadVideoUrl))
+        ..fields['upload_preset'] = _uploadPreset
+        ..fields['public_id'] = '$_folder/$shopId/videos/$timestamp'
+        ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 200) {
+        debugPrint(
+          '[CloudinaryService.uploadVideo] HTTP ${response.statusCode}: ${response.body}',
+        );
+        throw CloudinaryException(
+          'Upload failed with status ${response.statusCode}',
+          response.statusCode,
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final secureUrl = json['secure_url'] as String?;
+      if (secureUrl == null || secureUrl.isEmpty) {
+        throw const CloudinaryException(
+          'No secure_url in Cloudinary response',
+          0,
+        );
+      }
+
+      debugPrint('[CloudinaryService.uploadVideo] Uploaded: $secureUrl');
+      return secureUrl;
+    } on CloudinaryException {
+      rethrow;
+    } catch (e) {
+      debugPrint('[CloudinaryService.uploadVideo] Unexpected error: $e');
+      throw CloudinaryException('Unexpected upload error: $e', 0);
+    }
+  }
 
   // ── Private helpers ───────────────────────────────────────────────────
 

@@ -38,7 +38,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final currentUser = ref.read(currentUserProvider);
 
       final location = state.matchedLocation;
-      final isOnAuthScreen = location == '/login' || location == '/register';
+      final isOnAuthScreen =
+          location == '/login' || location == '/register';
 
       // Still loading Firebase auth — wait
       if (authState.isLoading) return null;

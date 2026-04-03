@@ -1,15 +1,19 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/shop_model.dart';
+import '../widgets/video_player_widget.dart';
 
 /// Seller-only dashboard — shows order summary, order list, and shop controls.
 /// M3 owns this file. Located at features/shop/screens/seller_dashboard_screen.dart
@@ -183,10 +187,13 @@ class _DashboardContent extends ConsumerWidget {
                   children: [
                     _OutlineButton(
                       label: 'About Us',
-                      onTap: () => context.goNamed(
-                        'shop-about',
-                        pathParameters: {'id': shop.shopId},
-                      ),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) =>
+                              _EditShopDetailsDialog(shop: shop),
+                        );
+                      },
                     ),
                     const SizedBox(width: 12),
                     _OutlineButton(
@@ -196,6 +203,10 @@ class _DashboardContent extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
+
+                // ── Upload Video Button & Video ScrollView ────────────
+                _ShopVideosList(shop: shop),
                 const SizedBox(height: 20),
               ],
             ),
@@ -708,6 +719,332 @@ class _NavItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Edit Shop Details Dialog ───────────────────────────────────────────────
+
+class _EditShopDetailsDialog extends ConsumerStatefulWidget {
+  final ShopModel shop;
+  const _EditShopDetailsDialog({required this.shop});
+
+  @override
+  ConsumerState<_EditShopDetailsDialog> createState() =>
+      _EditShopDetailsDialogState();
+}
+
+class _EditShopDetailsDialogState
+    extends ConsumerState<_EditShopDetailsDialog> {
+  late final TextEditingController _storyController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _storyController = TextEditingController(text: widget.shop.story);
+    _addressController = TextEditingController(text: widget.shop.address);
+    _phoneController = TextEditingController(
+      text: widget.shop.contactPhone ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.shop.contactEmail ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _storyController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(shopServiceProvider).updateShop(widget.shop.shopId, {
+        'story': _storyController.text.trim(),
+        'address': _addressController.text.trim(),
+        'contactPhone': _phoneController.text.trim(),
+        'contactEmail': _emailController.text.trim(),
+      });
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Shop details updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Edit Shop Details', style: AppTextStyles.heading2),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.9,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTextField(
+                controller: _storyController,
+                label: 'Story',
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(controller: _addressController, label: 'Address'),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _phoneController,
+                label: 'Contact Phone',
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _emailController,
+                label: 'Contact Email',
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.textOnPrimary,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Shop Videos Section ────────────────────────────────────────────────────
+
+class _ShopVideosList extends ConsumerStatefulWidget {
+  final ShopModel shop;
+  const _ShopVideosList({required this.shop});
+
+  @override
+  ConsumerState<_ShopVideosList> createState() => _ShopVideosListState();
+}
+
+class _ShopVideosListState extends ConsumerState<_ShopVideosList> {
+  bool _isUploading = false;
+
+  Future<void> _deleteVideo(String videoUrl) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Video'),
+        content: const Text('Are you sure you want to delete this video?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref
+          .read(shopServiceProvider)
+          .deleteShopVideo(widget.shop.shopId, videoUrl);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Video deleted')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete video: $e')));
+      }
+    }
+  }
+
+  Future<void> _uploadVideo() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final file = File(pickedFile.path);
+      await ref
+          .read(shopServiceProvider)
+          .uploadShopVideo(widget.shop.shopId, file);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video uploaded successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to upload video: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final videos = widget.shop.videoUrls ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Shop Shorts', style: AppTextStyles.heading2),
+            if (_isUploading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              GestureDetector(
+                onTap: _uploadVideo,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.video_call_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Upload',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (videos.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No videos uploaded yet.',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: videos.length,
+              itemBuilder: (context, index) {
+                final videoUrl = videos[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 140, // roughly 9:16 scaled down
+                          color: AppColors.surface,
+                          child: VideoPlayerWidget(
+                            videoUrl: videoUrl,
+                            showFullScreenButton: true,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _deleteVideo(videoUrl),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(6),
+                            child: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }

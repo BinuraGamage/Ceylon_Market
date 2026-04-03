@@ -29,10 +29,7 @@ class ShopService {
   Future<String> createShop(ShopModel shop) async {
     try {
       final shopId = _uuid.v4();
-      await _db
-          .collection(FirestorePaths.shops)
-          .doc(shopId)
-          .set(shop.toMap());
+      await _db.collection(FirestorePaths.shops).doc(shopId).set(shop.toMap());
       return shopId;
     } on FirebaseException catch (e) {
       debugPrint('[ShopService.createShop] FirebaseException: ${e.message}');
@@ -46,10 +43,7 @@ class ShopService {
   /// Fetches a single shop by ID. Returns null if not found.
   Future<ShopModel?> getShop(String shopId) async {
     try {
-      final doc = await _db
-          .collection(FirestorePaths.shops)
-          .doc(shopId)
-          .get();
+      final doc = await _db.collection(FirestorePaths.shops).doc(shopId).get();
       if (!doc.exists || doc.data() == null) return null;
       return ShopModel.fromMap(doc.data()!, doc.id);
     } on FirebaseException catch (e) {
@@ -60,11 +54,9 @@ class ShopService {
 
   /// Real-time stream of a shop document.
   Stream<ShopModel?> watchShop(String shopId) {
-    return _db
-        .collection(FirestorePaths.shops)
-        .doc(shopId)
-        .snapshots()
-        .map((doc) {
+    return _db.collection(FirestorePaths.shops).doc(shopId).snapshots().map((
+      doc,
+    ) {
       if (!doc.exists || doc.data() == null) return null;
       return ShopModel.fromMap(doc.data()!, doc.id);
     });
@@ -82,7 +74,9 @@ class ShopService {
       final doc = query.docs.first;
       return ShopModel.fromMap(doc.data(), doc.id);
     } on FirebaseException catch (e) {
-      debugPrint('[ShopService.getShopByOwner] FirebaseException: ${e.message}');
+      debugPrint(
+        '[ShopService.getShopByOwner] FirebaseException: ${e.message}',
+      );
       rethrow;
     }
   }
@@ -95,19 +89,16 @@ class ShopService {
         .limit(1)
         .snapshots()
         .map((query) {
-      if (query.docs.isEmpty) return null;
-      final doc = query.docs.first;
-      return ShopModel.fromMap(doc.data(), doc.id);
-    });
+          if (query.docs.isEmpty) return null;
+          final doc = query.docs.first;
+          return ShopModel.fromMap(doc.data(), doc.id);
+        });
   }
 
   /// Updates specific fields on a shop doc. Seller-owned fields only.
   Future<void> updateShop(String shopId, Map<String, dynamic> fields) async {
     try {
-      await _db
-          .collection(FirestorePaths.shops)
-          .doc(shopId)
-          .update(fields);
+      await _db.collection(FirestorePaths.shops).doc(shopId).update(fields);
     } on FirebaseException catch (e) {
       debugPrint('[ShopService.updateShop] FirebaseException: ${e.message}');
       rethrow;
@@ -117,10 +108,9 @@ class ShopService {
   /// Soft-delete: sets status to 'suspended'. Never calls .delete().
   Future<void> suspendShop(String shopId) async {
     try {
-      await _db
-          .collection(FirestorePaths.shops)
-          .doc(shopId)
-          .update({'status': 'suspended'});
+      await _db.collection(FirestorePaths.shops).doc(shopId).update({
+        'status': 'suspended',
+      });
     } on FirebaseException catch (e) {
       debugPrint('[ShopService.suspendShop] FirebaseException: ${e.message}');
       rethrow;
@@ -156,6 +146,44 @@ class ShopService {
     }
   }
 
+  /// Uploads a shop video via Cloudinary and adds its URL to the shop document.
+  Future<void> uploadShopVideo(String shopId, File file) async {
+    try {
+      final secureUrl = await CloudinaryService.instance.uploadVideo(
+        shopId,
+        file,
+      );
+      await _db.collection(FirestorePaths.shops).doc(shopId).update({
+        'videoUrls': FieldValue.arrayUnion([secureUrl]),
+      });
+    } on FirebaseException catch (e) {
+      debugPrint(
+        '[ShopService.uploadShopVideo] FirebaseException: ${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('[ShopService.uploadShopVideo] Unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  /// Removes a shop video from the shop document.
+  Future<void> deleteShopVideo(String shopId, String videoUrl) async {
+    try {
+      await _db.collection(FirestorePaths.shops).doc(shopId).update({
+        'videoUrls': FieldValue.arrayRemove([videoUrl]),
+      });
+    } on FirebaseException catch (e) {
+      debugPrint(
+        '[ShopService.deleteShopVideo] FirebaseException: ${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('[ShopService.deleteShopVideo] Unexpected error: $e');
+      rethrow;
+    }
+  }
+
   // ─── Analytics ────────────────────────────────────────────────────────────
 
   /// Records a product view for analytics.
@@ -170,7 +198,9 @@ class ShopService {
         'viewCount': FieldValue.increment(1),
       });
     } on FirebaseException catch (e) {
-      debugPrint('[ShopService.recordProductView] FirebaseException: ${e.message}');
+      debugPrint(
+        '[ShopService.recordProductView] FirebaseException: ${e.message}',
+      );
       rethrow;
     }
   }
@@ -205,27 +235,31 @@ class ShopService {
         double revenue = 0;
         for (final order in ordersQuery.docs) {
           final items = List<Map<String, dynamic>>.from(
-              order.data()['items'] as List? ?? []);
+            order.data()['items'] as List? ?? [],
+          );
           for (final item in items) {
             if (item['productId'] == doc.id) {
               sales += (item['quantity'] as int? ?? 1);
-              revenue += ((item['price'] as num?)?.toDouble() ?? 0) *
+              revenue +=
+                  ((item['price'] as num?)?.toDouble() ?? 0) *
                   (item['quantity'] as int? ?? 1);
             }
           }
         }
 
-        allProducts.add(TopProduct(
-          productId: doc.id,
-          name: data['name'] as String? ?? '',
-          thumbnailUrl: (data['images'] as List?)?.isNotEmpty == true
-              ? (data['images'] as List).first as String
-              : null,
-          revenueLKR: revenue,
-          sales: sales,
-          views: views,
-          hasWarning: views > 50 && sales < 3,
-        ));
+        allProducts.add(
+          TopProduct(
+            productId: doc.id,
+            name: data['name'] as String? ?? '',
+            thumbnailUrl: (data['images'] as List?)?.isNotEmpty == true
+                ? (data['images'] as List).first as String
+                : null,
+            revenueLKR: revenue,
+            sales: sales,
+            views: views,
+            hasWarning: views > 50 && sales < 3,
+          ),
+        );
       }
 
       // Sort for top/low
@@ -306,9 +340,9 @@ class ShopService {
       final topCategory = categoryCount.isEmpty
           ? 'furniture'
           : (categoryCount.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value)))
-              .first
-              .key;
+                  ..sort((a, b) => b.value.compareTo(a.value)))
+                .first
+                .key;
 
       // AI-powered insights (rule-based, no external call)
       final insights = _generateInsights(topProducts, lowProducts, repeatRate);
@@ -323,14 +357,18 @@ class ShopService {
         lowProducts: lowProducts,
         customerBehavior: CustomerBehavior(
           activeByHour: activeByHour.map(
-              (k, v) => MapEntry(int.tryParse(k) ?? 0, v) as MapEntry<String, int>),
+            (k, v) =>
+                MapEntry(int.tryParse(k) ?? 0, v) as MapEntry<String, int>,
+          ),
           topViewedCategory: topCategory,
           repeatCustomerRate: repeatRate,
         ),
         aiInsights: insights,
       );
     } on FirebaseException catch (e) {
-      debugPrint('[ShopService.getShopAnalytics] FirebaseException: ${e.message}');
+      debugPrint(
+        '[ShopService.getShopAnalytics] FirebaseException: ${e.message}',
+      );
       rethrow;
     } catch (e) {
       debugPrint('[ShopService.getShopAnalytics] Unexpected error: $e');
@@ -346,15 +384,18 @@ class ShopService {
     final insights = <String>[];
     if (top.isNotEmpty) {
       insights.add(
-          '🔥 "${top.first.name}" is your top seller — consider restocking soon.');
+        '🔥 "${top.first.name}" is your top seller — consider restocking soon.',
+      );
     }
     if (low.isNotEmpty) {
       insights.add(
-          '💡 Lowering the price on "${low.first.name}" could improve sales.');
+        '💡 Lowering the price on "${low.first.name}" could improve sales.',
+      );
     }
     if (repeatRate > 0.3) {
       insights.add(
-          '⭐ Great repeat customer rate! Reward loyal buyers with a promo code.');
+        '⭐ Great repeat customer rate! Reward loyal buyers with a promo code.',
+      );
     }
     insights.add('📢 Post new products around 8 PM for maximum visibility.');
     return insights;
@@ -369,21 +410,21 @@ class ShopService {
         .where('shopId', isEqualTo: shopId)
         .snapshots()
         .map((query) {
-      int all = 0, pending = 0, shipped = 0, cancelled = 0;
-      for (final doc in query.docs) {
-        all++;
-        final status = doc.data()['status'] as String? ?? '';
-        if (status == 'pending' || status == 'confirmed') pending++;
-        if (status == 'shipped' || status == 'delivered') shipped++;
-        if (status == 'cancelled') cancelled++;
-      }
-      return {
-        'all': all,
-        'pending': pending,
-        'shipped': shipped,
-        'cancelled': cancelled,
-      };
-    });
+          int all = 0, pending = 0, shipped = 0, cancelled = 0;
+          for (final doc in query.docs) {
+            all++;
+            final status = doc.data()['status'] as String? ?? '';
+            if (status == 'pending' || status == 'confirmed') pending++;
+            if (status == 'shipped' || status == 'delivered') shipped++;
+            if (status == 'cancelled') cancelled++;
+          }
+          return {
+            'all': all,
+            'pending': pending,
+            'shipped': shipped,
+            'cancelled': cancelled,
+          };
+        });
   }
 
   /// Streams a real-time list of orders for this shop, newest first.
@@ -399,12 +440,9 @@ class ShopService {
     }
     return query.snapshots().map((snap) {
       final list = snap.docs
-          .map((d) => {
-                ...d.data() as Map<String, dynamic>,
-                'orderId': d.id,
-              })
+          .map((d) => {...d.data() as Map<String, dynamic>, 'orderId': d.id})
           .toList();
-          
+
       // Sort in-memory instead of orderBy to bypass index requirements
       list.sort((a, b) {
         final aTime = a['createdAt'] as Timestamp?;
