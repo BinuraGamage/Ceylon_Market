@@ -49,8 +49,11 @@ final productProvider =
   return ref.read(firestoreServiceProvider).getProduct(productId);
 });
 
-/// Single shop fetch — keyed by shopId. Used in product detail screen header.
-final shopProvider =
+/// Read-only shop fetch for M2's product detail preview card.
+/// Named shopPreviewProvider to avoid collision with M3's shopProvider
+/// in providers/shop_provider.dart (which owns full shop state).
+/// M2 only needs name, city, logo — not the full seller dashboard state.
+final shopPreviewProvider =
     FutureProvider.family<ShopModel, String>((ref, shopId) {
   return ref.read(firestoreServiceProvider).getShop(shopId);
 });
@@ -67,66 +70,8 @@ final categoryProductsProvider =
       .watchProductsByCategory(category);
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// M2 — Search State
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// The live search query string — drives the search results provider.
-final searchQueryProvider = StateProvider<String>((ref) => '');
-
-/// Active category filter — empty string means "all categories".
-final searchCategoryFilterProvider = StateProvider<String>((ref) => '');
-
-/// Price range filter — null means no bound.
-final searchMinPriceProvider = StateProvider<double?>((ref) => null);
-final searchMaxPriceProvider = StateProvider<double?>((ref) => null);
-
-/// Encapsulates all search filter state for convenient passing.
-class SearchFilters {
-  final String query;
-  final String category;
-  final double? minPrice;
-  final double? maxPrice;
-
-  const SearchFilters({
-    required this.query,
-    required this.category,
-    this.minPrice,
-    this.maxPrice,
-  });
-
-  bool get hasActiveFilters =>
-      category.isNotEmpty || minPrice != null || maxPrice != null;
-}
-
-/// Derived provider — builds SearchFilters from individual state providers.
-final activeSearchFiltersProvider = Provider<SearchFilters>((ref) {
-  return SearchFilters(
-    query: ref.watch(searchQueryProvider),
-    category: ref.watch(searchCategoryFilterProvider),
-    minPrice: ref.watch(searchMinPriceProvider),
-    maxPrice: ref.watch(searchMaxPriceProvider),
-  );
-});
-
-/// Runs the Firestore search query whenever any filter changes.
-/// Uses autoDispose so the query is cancelled when the search screen is left.
-final searchResultsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
-  final filters = ref.watch(activeSearchFiltersProvider);
-
-  // Don't fire a query if there's nothing to search.
-  if (filters.query.isEmpty && !filters.hasActiveFilters) {
-    return [];
-  }
-
-  return ref.read(firestoreServiceProvider).searchProducts(
-        query: filters.query,
-        category: filters.category.isEmpty ? null : filters.category,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-      );
-});
+// Search state (searchQueryProvider, SearchFilters, searchResultsProvider, etc.)
+// lives exclusively in providers/search_provider.dart — do not redeclare here.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // M2 — Image-Based Search
