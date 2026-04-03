@@ -1,15 +1,19 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/shop_model.dart';
+import '../widgets/video_player_widget.dart';
 
 /// Seller-only dashboard — shows order summary, order list, and shop controls.
 /// M3 owns this file. Located at features/shop/screens/seller_dashboard_screen.dart
@@ -81,19 +85,28 @@ class _DashboardContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.textSecondary, size: 18),
+                  const Icon(
+                    Icons.search,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Search Store',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    'Search Store',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.camera_alt_outlined,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.camera_alt_outlined,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () {},
             ),
           ],
@@ -115,8 +128,7 @@ class _DashboardContent extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.surface,
-                        border:
-                            Border.all(color: AppColors.primary, width: 3),
+                        border: Border.all(color: AppColors.primary, width: 3),
                       ),
                       child: ClipOval(
                         child: shop.logoUrl != null
@@ -127,14 +139,19 @@ class _DashboardContent extends ConsumerWidget {
                                 errorWidget: (_, __, ___) =>
                                     const Icon(Icons.store, size: 40),
                               )
-                            : const Icon(Icons.store,
-                                size: 40, color: AppColors.primary),
+                            : const Icon(
+                                Icons.store,
+                                size: 40,
+                                color: AppColors.primary,
+                              ),
                       ),
                     ),
                     // Edit logo button
                     GestureDetector(
-                      onTap: () => context.goNamed('edit-shop',
-                          pathParameters: {'id': shop.shopId}),
+                      onTap: () => context.goNamed(
+                        'edit-shop',
+                        pathParameters: {'id': shop.shopId},
+                      ),
                       child: Container(
                         width: 26,
                         height: 26,
@@ -143,8 +160,11 @@ class _DashboardContent extends ConsumerWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: const Icon(Icons.add,
-                            size: 16, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.add,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -154,8 +174,9 @@ class _DashboardContent extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   shop.story,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -166,8 +187,13 @@ class _DashboardContent extends ConsumerWidget {
                   children: [
                     _OutlineButton(
                       label: 'About Us',
-                      onTap: () => context.goNamed('shop-about',
-                          pathParameters: {'id': shop.shopId}),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) =>
+                              _EditShopDetailsDialog(shop: shop),
+                        );
+                      },
                     ),
                     const SizedBox(width: 12),
                     _OutlineButton(
@@ -177,6 +203,10 @@ class _DashboardContent extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
+
+                // ── Upload Video Button & Video ScrollView ────────────
+                _ShopVideosList(shop: shop),
                 const SizedBox(height: 20),
               ],
             ),
@@ -198,20 +228,24 @@ class _DashboardContent extends ConsumerWidget {
                   data: (summary) => Row(
                     children: [
                       _SummaryCard(
-                          label: 'All Orders',
-                          value: summary['all'] ?? 0),
+                        label: 'All Orders',
+                        value: summary['all'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Pending',
-                          value: summary['pending'] ?? 0),
+                        label: 'Pending',
+                        value: summary['pending'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Shipped',
-                          value: summary['shipped'] ?? 0),
+                        label: 'Shipped',
+                        value: summary['shipped'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Cancelled',
-                          value: summary['cancelled'] ?? 0),
+                        label: 'Cancelled',
+                        value: summary['cancelled'] ?? 0,
+                      ),
                     ],
                   ),
                 ),
@@ -247,7 +281,10 @@ class _OrderFilterTabDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Consumer(
       builder: (context, ref, _) {
         final current = ref.watch(orderFilterProvider);
@@ -263,9 +300,8 @@ class _OrderFilterTabDelegate extends SliverPersistentHeaderDelegate {
               children: List.generate(filters.length, (i) {
                 final selected = current == filters[i];
                 return GestureDetector(
-                  onTap: () => ref
-                      .read(orderFilterProvider.notifier)
-                      .state = filters[i],
+                  onTap: () =>
+                      ref.read(orderFilterProvider.notifier).state = filters[i],
                   child: Padding(
                     padding: const EdgeInsets.only(right: 20),
                     child: Column(
@@ -317,10 +353,7 @@ class _OrderList extends ConsumerWidget {
 
     return ordersAsync.when(
       loading: () => const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: LoadingShimmer(),
-        ),
+        child: Padding(padding: EdgeInsets.all(20), child: LoadingShimmer()),
       ),
       error: (e, _) => SliverToBoxAdapter(
         child: Padding(
@@ -330,9 +363,7 @@ class _OrderList extends ConsumerWidget {
       ),
       data: (orders) {
         if (orders.isEmpty) {
-          return SliverToBoxAdapter(
-            child: _EmptyOrders(),
-          );
+          return SliverToBoxAdapter(child: _EmptyOrders());
         }
         return SliverList(
           delegate: SliverChildBuilderDelegate(
@@ -378,11 +409,15 @@ class _OrderTile extends StatelessWidget {
         : DateTime.now();
 
     // Get first item thumbnail from order snapshot
-    final items = List<Map<String, dynamic>>.from(order['items'] as List? ?? []);
+    final items = List<Map<String, dynamic>>.from(
+      order['items'] as List? ?? [],
+    );
     final firstName = items.isNotEmpty
         ? items.first['name'] as String? ?? 'Product'
         : 'Product';
-    final thumbUrl = items.isNotEmpty ? items.first['thumbnailUrl'] as String? : null;
+    final thumbUrl = items.isNotEmpty
+        ? items.first['thumbnailUrl'] as String?
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -401,8 +436,11 @@ class _OrderTile extends StatelessWidget {
                 border: Border.all(color: AppColors.border),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.delete_outline,
-                  color: AppColors.error, size: 18),
+              child: const Icon(
+                Icons.delete_outline,
+                color: AppColors.error,
+                size: 18,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -423,8 +461,10 @@ class _OrderTile extends StatelessWidget {
                     width: 64,
                     height: 64,
                     color: AppColors.surface,
-                    child: const Icon(Icons.image_outlined,
-                        color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
           ),
           const SizedBox(width: 12),
@@ -438,8 +478,9 @@ class _OrderTile extends StatelessWidget {
                 Text(
                   '#${orderId.substring(0, 6).toUpperCase()}  –  '
                   '${DateFormat('d MMM yyyy').format(createdAt)}',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -451,10 +492,14 @@ class _OrderTile extends StatelessWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: _statusColor(status), width: 1.5),
+                          color: _statusColor(status),
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -495,16 +540,22 @@ class _SummaryCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 4),
-            Text('$value',
-                style: AppTextStyles.heading2
-                    .copyWith(color: AppColors.textPrimary)),
+            Text(
+              '$value',
+              style: AppTextStyles.heading2.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
       ),
@@ -527,19 +578,19 @@ class _OutlineButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: filled ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: filled ? AppColors.primary : AppColors.primary),
+            color: filled ? AppColors.primary : AppColors.primary,
+          ),
         ),
         child: Text(
           label,
           style: AppTextStyles.button.copyWith(
-              color:
-                  filled ? AppColors.textOnPrimary : AppColors.primary),
+            color: filled ? AppColors.textOnPrimary : AppColors.primary,
+          ),
         ),
       ),
     );
@@ -553,15 +604,17 @@ class _EmptyOrders extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         children: [
-          const Icon(Icons.inbox_outlined,
-              size: 56, color: AppColors.textSecondary),
+          const Icon(
+            Icons.inbox_outlined,
+            size: 56,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 12),
           Text('No orders yet', style: AppTextStyles.heading2),
           const SizedBox(height: 4),
           Text(
             'Orders from your customers will appear here.',
-            style:
-                AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -578,11 +631,13 @@ class _NoShopState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.store_mall_directory_outlined,
-              size: 64, color: AppColors.textSecondary),
+          const Icon(
+            Icons.store_mall_directory_outlined,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 16),
-          Text("You don't have a shop yet.",
-              style: AppTextStyles.heading2),
+          Text("You don't have a shop yet.", style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => context.goNamed('seller-register'),
@@ -636,8 +691,11 @@ class _SellerNavBar extends ConsumerWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem(
-      {required this.icon, required this.label, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -651,11 +709,338 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.primary, size: 24),
           const SizedBox(height: 2),
-          Text(label,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.primary)),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+          ),
         ],
       ),
+    );
+  }
+}
+
+// ── Edit Shop Details Dialog ───────────────────────────────────────────────
+
+class _EditShopDetailsDialog extends ConsumerStatefulWidget {
+  final ShopModel shop;
+  const _EditShopDetailsDialog({required this.shop});
+
+  @override
+  ConsumerState<_EditShopDetailsDialog> createState() =>
+      _EditShopDetailsDialogState();
+}
+
+class _EditShopDetailsDialogState
+    extends ConsumerState<_EditShopDetailsDialog> {
+  late final TextEditingController _storyController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _storyController = TextEditingController(text: widget.shop.story);
+    _addressController = TextEditingController(text: widget.shop.address);
+    _phoneController = TextEditingController(
+      text: widget.shop.contactPhone ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.shop.contactEmail ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _storyController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(shopServiceProvider).updateShop(widget.shop.shopId, {
+        'story': _storyController.text.trim(),
+        'address': _addressController.text.trim(),
+        'contactPhone': _phoneController.text.trim(),
+        'contactEmail': _emailController.text.trim(),
+      });
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Shop details updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Edit Shop Details', style: AppTextStyles.heading2),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.9,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTextField(
+                controller: _storyController,
+                label: 'Story',
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(controller: _addressController, label: 'Address'),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _phoneController,
+                label: 'Contact Phone',
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _emailController,
+                label: 'Contact Email',
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.textOnPrimary,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Shop Videos Section ────────────────────────────────────────────────────
+
+class _ShopVideosList extends ConsumerStatefulWidget {
+  final ShopModel shop;
+  const _ShopVideosList({required this.shop});
+
+  @override
+  ConsumerState<_ShopVideosList> createState() => _ShopVideosListState();
+}
+
+class _ShopVideosListState extends ConsumerState<_ShopVideosList> {
+  bool _isUploading = false;
+
+  Future<void> _deleteVideo(String videoUrl) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Video'),
+        content: const Text('Are you sure you want to delete this video?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref
+          .read(shopServiceProvider)
+          .deleteShopVideo(widget.shop.shopId, videoUrl);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Video deleted')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete video: $e')));
+      }
+    }
+  }
+
+  Future<void> _uploadVideo() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final file = File(pickedFile.path);
+      await ref
+          .read(shopServiceProvider)
+          .uploadShopVideo(widget.shop.shopId, file);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video uploaded successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to upload video: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final videos = widget.shop.videoUrls ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Shop Shorts', style: AppTextStyles.heading2),
+            if (_isUploading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              GestureDetector(
+                onTap: _uploadVideo,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.video_call_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Upload',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (videos.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No videos uploaded yet.',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: videos.length,
+              itemBuilder: (context, index) {
+                final videoUrl = videos[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 140, // roughly 9:16 scaled down
+                          color: AppColors.surface,
+                          child: VideoPlayerWidget(
+                            videoUrl: videoUrl,
+                            showFullScreenButton: true,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _deleteVideo(videoUrl),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(6),
+                            child: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }
