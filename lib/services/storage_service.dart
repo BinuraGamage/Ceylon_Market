@@ -40,4 +40,23 @@ class StorageService {
     );
     return Future.wait(futures);
   }
+
+  /// Upload a custom request image.
+  Future<String> uploadRequestImage({
+    required File file,
+    required String customerId,
+  }) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final publicId = 'custom_requests/$customerId/$timestamp';
+      return await CloudinaryService.instance.uploadImage(
+        file: file,
+        publicId: publicId,
+      );
+    } catch (e) {
+      debugPrint('[StorageService] uploadRequestImage error: $e');
+      rethrow;
+    }
+  }
 }
+

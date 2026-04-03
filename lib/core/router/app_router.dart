@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/home/screens/customer_home_screen.dart';
-import '../../features/auth/screens/designer_home_stub.dart';
+import '../../features/customization/screens/custom_inquiry_screen.dart';
+import '../../features/customization/screens/designer_dashboard_screen.dart';
+import '../../features/customization/screens/my_requests_screen.dart';
+import '../../features/customization/screens/custom_request_detail_screen.dart';
 import '../../features/auth/screens/admin_dashboard_stub.dart';
 import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
@@ -145,7 +148,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'designer-home',
         path: '/designer',
-        builder: (context, state) => const DesignerHomeStub(),
+        builder: (context, state) => const DesignerDashboardScreen(),
+      ),
+      GoRoute(
+        name: 'custom-inquiry',
+        path: '/custom-inquiry',
+        builder: (context, state) => const CustomInquiryScreen(),
+      ),
+      GoRoute(
+        name: 'my-requests',
+        path: '/my-requests',
+        builder: (context, state) => const MyRequestsScreen(),
+      ),
+      GoRoute(
+        name: 'custom-request-detail',
+        path: '/custom-request/:id',
+        builder: (context, state) => CustomRequestDetailScreen(
+          requestId: state.pathParameters['id']!,
+        ),
       ),
 
       // ── Admin ────────────────────────────────────────────────────────────

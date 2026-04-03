@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../core/constants/firestore_paths.dart';
+import '../models/custom_request_model.dart';
+import '../models/custom_request_message_model.dart';
 import '../models/product_model.dart';
 import '../models/review_model.dart';
 import '../models/shop_model.dart';
@@ -429,6 +431,162 @@ class FirestoreService {
   }
 
   // TODO: M5 — cart and order methods go here
-  // TODO: M6 — custom request methods go here
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M6 — Customization requests
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<String> createCustomRequest(CustomRequestModel request) async {
+    try {
+      final doc = _db.collection(FirestorePaths.customRequests).doc();
+      final now = DateTime.now();
+      final payload = request.copyWith(
+        requestId: doc.id,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await doc.set(payload.toMap());
+      return doc.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] createCustomRequest error: $e');
+      rethrow;
+    }
+  }
+
+  Stream<List<CustomRequestModel>> watchCustomRequestsForCustomer(
+    String customerId,
+  ) {
+    return _db
+        .collection(FirestorePaths.customRequests)
+        .where('customerId', isEqualTo: customerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  Stream<List<CustomRequestModel>> watchCustomRequestsForShop(String shopId) {
+    return _db
+        .collection(FirestorePaths.customRequests)
+        .where('shopId', isEqualTo: shopId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  Stream<List<CustomRequestModel>> watchCustomRequestsForDesigner(
+    String designerId,
+  ) {
+    return _db
+        .collection(FirestorePaths.customRequests)
+        .where('designerId', isEqualTo: designerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  Stream<CustomRequestModel> watchCustomRequestById(String requestId) {
+    return _db
+        .doc('${FirestorePaths.customRequests}/$requestId')
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists || doc.data() == null) {
+            throw Exception('Custom request $requestId not found');
+          }
+          return CustomRequestModel.fromMap(doc.data()!, doc.id);
+        });
+  }
+
+  Future<void> updateCustomRequestStatus({
+    required String requestId,
+    required String status,
+    String? designerId,
+    String? shopId,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (designerId != null) {
+        updates['designerId'] = designerId;
+      }
+      if (shopId != null) {
+        updates['shopId'] = shopId;
+      }
+      await _db.doc('${FirestorePaths.customRequests}/$requestId').update(updates);
+    } catch (e) {
+      debugPrint('[FirestoreService] updateCustomRequestStatus error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addCustomRequestMessage({
+    required String requestId,
+    required CustomRequestMessageModel message,
+  }) async {
+    try {
+      final docRef = _db
+          .collection(FirestorePaths.messagesCollection(requestId))
+          .doc();
+      await docRef.set(message.copyWith(messageId: docRef.id).toMap());
+    } catch (e) {
+      debugPrint('[FirestoreService] addCustomRequestMessage error: $e');
+      rethrow;
+    }
+  }
+
+  Stream<List<CustomRequestMessageModel>> watchCustomRequestMessages(
+    String requestId,
+  ) {
+    return _db
+        .collection(FirestorePaths.messagesCollection(requestId))
+        .orderBy('sentAt', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => CustomRequestMessageModel.fromMap(
+                  doc.data(),
+                  doc.id,
+                  requestId,
+                ))
+            .toList());
+  }
+
+  Future<List<ShopModel>> suggestShopsForInquiry({
+    required List<String> productTags,
+    int limit = 3,
+  }) async {
+    try {
+      if (productTags.isEmpty) {
+        final snap = await _db
+            .collection(FirestorePaths.shops)
+            .where('status', isEqualTo: 'active')
+            .limit(limit)
+            .get();
+        return snap.docs
+            .map((doc) => ShopModel.fromMap(doc.data(), doc.id))
+            .toList();
+      }
+
+      final snap = await _db
+          .collection(FirestorePaths.shops)
+          .where('categories', arrayContainsAny: productTags.take(10).toList())
+          .where('status', isEqualTo: 'active')
+          .limit(limit)
+          .get();
+      return snap.docs
+          .map((doc) => ShopModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('[FirestoreService] suggestShopsForInquiry error: $e');
+      rethrow;
+    }
+  }
+
   // TODO: M7 — notification queue writes go here
 }
