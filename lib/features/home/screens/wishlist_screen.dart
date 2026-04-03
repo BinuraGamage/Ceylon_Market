@@ -4,11 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
-import '../../../models/product_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/product_provider.dart';
+import '../../../features/customization/widgets/product_customization_widget.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../widgets/customer_bottom_nav_bar.dart';
@@ -97,9 +96,12 @@ class _WishlistGridItem extends ConsumerWidget {
       loading: () => const LoadingShimmer(height: 200, width: double.infinity),
       error: (e, _) => const Center(child: Text('Error loading product')),
       data: (product) => GestureDetector(
-        onTap: () => context.pushNamed(
+        onTap: () => context.goNamed(
           'product-detail',
           pathParameters: {'id': productId},
+          extra: product.customizable
+              ? ProductCustomizationWidget(product: product)
+              : null,
         ),
         child: ProductCard(product: product),
       ),

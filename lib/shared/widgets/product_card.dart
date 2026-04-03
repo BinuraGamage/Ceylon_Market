@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../features/customization/widgets/product_customization_widget.dart';
 import '../../models/product_model.dart';
 import '../../models/shop_model.dart';
 import '../../providers/product_provider.dart';
@@ -23,6 +24,9 @@ class ProductCard extends StatelessWidget {
       onTap: () => context.goNamed(
         'product-detail',
         pathParameters: {'id': product.productId},
+        extra: product.customizable
+            ? ProductCustomizationWidget(product: product)
+            : null,
       ),
       child: Container(
         width: width,
@@ -196,6 +200,9 @@ class ProductListTile extends StatelessWidget {
       onTap: () => context.goNamed(
         'product-detail',
         pathParameters: {'id': product.productId},
+        extra: product.customizable
+            ? ProductCustomizationWidget(product: product)
+            : null,
       ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

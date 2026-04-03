@@ -24,8 +24,39 @@ class CustomerHomeScreen extends ConsumerWidget {
             _HomeAppBar(),
             _SearchBar(),
             _CategoryChips(),
-            // TODO: M7 — AdBannerWidget slot
-            // AdBannerWidget(targetCategory: selectedCategory)
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              color: AppColors.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('Custom design service', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        SizedBox(height: 4),
+                        Text('Request bespoke orders or submit an inquiry'),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: () => context.goNamed('custom-inquiry'),
+                      child: const Text('Start'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: OutlinedButton(
+                onPressed: () => context.goNamed('my-requests'),
+                child: const Text('View My Requests'),
+              ),
+            ),
+            const SizedBox(height: 12),
             _SectionHeader(
               title: 'Trending',
               onSeeAll: () => context.goNamed('search'),

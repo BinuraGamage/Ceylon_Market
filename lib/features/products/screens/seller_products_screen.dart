@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../features/customization/widgets/product_customization_widget.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
@@ -82,9 +83,12 @@ class SellerProductsScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final product = products[index];
               return InkWell(
-                onTap: () => context.pushNamed(
+                onTap: () => context.goNamed(
                   'product-detail',
                   pathParameters: {'id': product.productId},
+                  extra: product.customizable
+                      ? ProductCustomizationWidget(product: product)
+                      : null,
                 ),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
