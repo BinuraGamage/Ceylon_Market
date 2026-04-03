@@ -11,6 +11,7 @@ class UserModel extends Equatable {
   final DateTime createdAt;
   final String? fcmToken;
   final List<String> followedShops;
+  final List<String> wishlist;
 
   const UserModel({
     required this.uid,
@@ -22,6 +23,7 @@ class UserModel extends Equatable {
     required this.createdAt,
     this.fcmToken,
     this.followedShops = const [],
+    this.wishlist = const [],
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -35,6 +37,7 @@ class UserModel extends Equatable {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       fcmToken: map['fcmToken'] as String?,
       followedShops: List<String>.from(map['followedShops'] ?? []),
+      wishlist: List<String>.from(map['wishlist'] ?? []),
     );
   }
 
@@ -47,8 +50,35 @@ class UserModel extends Equatable {
     'createdAt': Timestamp.fromDate(createdAt),
     'fcmToken': fcmToken,
     'followedShops': followedShops,
+    'wishlist': wishlist,
   };
 
   @override
-  List<Object?> get props => [uid, email, role, status];
+  List<Object?> get props => [uid, email, role, status, wishlist];
+
+  UserModel copyWith({
+    String? uid,
+    String? email,
+    String? displayName,
+    String? photoUrl,
+    String? role,
+    String? status,
+    DateTime? createdAt,
+    String? fcmToken,
+    List<String>? followedShops,
+    List<String>? wishlist,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      fcmToken: fcmToken ?? this.fcmToken,
+      followedShops: followedShops ?? this.followedShops,
+      wishlist: wishlist ?? this.wishlist,
+    );
+  }
 }

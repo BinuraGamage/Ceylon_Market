@@ -336,9 +336,8 @@ class FirestoreService {
           .collection(FirestorePaths.reviewsCollection(productId))
           .doc(customerId);
 
-      String shopId = '';
-
       await _db.runTransaction((tx) async {
+        // --- 1. Perform all reads first ---
         final productSnap = await tx.get(productRef);
         if (!productSnap.exists || productSnap.data() == null) {
           throw Exception('Product not found');
@@ -350,14 +349,23 @@ class FirestoreService {
         }
 
         final productData = productSnap.data()!;
-        shopId = productData['shopId'] as String? ?? '';
+        final shopId = productData['shopId'] as String? ?? '';
 
+        DocumentSnapshot<Map<String, dynamic>>? shopSnap;
+        DocumentReference<Map<String, dynamic>>? shopRef;
+        if (shopId.isNotEmpty) {
+          shopRef = _db.doc(FirestorePaths.shopDoc(shopId));
+          shopSnap = await tx.get(shopRef);
+        }
+
+        // --- 2. Calculate new values ---
         final currentAvg =
             (productData['avgRating'] as num?)?.toDouble() ?? 0.0;
         final currentCount = (productData['reviewCount'] as num?)?.toInt() ?? 0;
         final nextCount = currentCount + 1;
         final nextAvg = ((currentAvg * currentCount) + rating) / nextCount;
 
+        // --- 3. Perform all writes ---
         tx.set(reviewRef, {
           'reviewId': reviewRef.id,
           'productId': productId,
@@ -370,26 +378,52 @@ class FirestoreService {
 
         tx.update(productRef, {'avgRating': nextAvg, 'reviewCount': nextCount});
 
-        if (shopId.isNotEmpty) {
-          final shopRef = _db.doc(FirestorePaths.shopDoc(shopId));
-          final shopSnap = await tx.get(shopRef);
-          if (shopSnap.exists && shopSnap.data() != null) {
-            final shopData = shopSnap.data()!;
-            final shopAvg = (shopData['avgRating'] as num?)?.toDouble() ?? 0.0;
-            final shopCount = (shopData['reviewCount'] as num?)?.toInt() ?? 0;
-            final shopNextCount = shopCount + 1;
-            final shopNextAvg =
-                ((shopAvg * shopCount) + rating) / shopNextCount;
+        if (shopSnap != null &&
+            shopSnap.exists &&
+            shopSnap.data() != null &&
+            shopRef != null) {
+          final shopData = shopSnap.data()!;
+          final shopAvg = (shopData['avgRating'] as num?)?.toDouble() ?? 0.0;
+          final shopCount = (shopData['reviewCount'] as num?)?.toInt() ?? 0;
+          final shopNextCount = shopCount + 1;
+          final shopNextAvg = ((shopAvg * shopCount) + rating) / shopNextCount;
 
-            tx.update(shopRef, {
-              'avgRating': shopNextAvg,
-              'reviewCount': shopNextCount,
-            });
-          }
+          tx.update(shopRef, {
+            'avgRating': shopNextAvg,
+            'reviewCount': shopNextCount,
+          });
         }
       });
     } catch (e) {
       debugPrint('[FirestoreService] submitProductReview error: $e');
+      rethrow;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M4 — Wishlist Logic
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Add or remove a product from the user's wishlist
+  Future<void> toggleWishlist({
+    required String uid,
+    required String productId,
+    required bool isAdding,
+  }) async {
+    try {
+      final userRef = _db.doc(FirestorePaths.userDoc(uid));
+
+      if (isAdding) {
+        await userRef.update({
+          'wishlist': FieldValue.arrayUnion([productId]),
+        });
+      } else {
+        await userRef.update({
+          'wishlist': FieldValue.arrayRemove([productId]),
+        });
+      }
+    } catch (e) {
+      debugPrint('[FirestoreService] toggleWishlist error: $e');
       rethrow;
     }
   }

@@ -11,6 +11,7 @@ import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
 import '../../features/home/screens/category_browse_screen.dart';
 import '../../features/home/screens/placeholder_screen.dart';
+import '../../features/home/screens/wishlist_screen.dart';
 import '../../features/products/screens/product_form_screen.dart';
 import '../../features/products/screens/product_reviews_screen.dart';
 import '../../features/products/screens/seller_products_screen.dart';
@@ -194,10 +195,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'wishlist',
         path: '/wishlist',
-        builder: (context, state) => const PlaceholderScreen(
-          title: 'Wishlist',
-          message: 'Wishlist screen is coming soon.',
-        ),
+        builder: (context, state) => const WishlistScreen(),
       ),
       GoRoute(
         name: 'cart',

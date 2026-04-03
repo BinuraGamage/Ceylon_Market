@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../models/product_model.dart';
+import '../../../models/shop_model.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/product_provider.dart';
+import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 
-class ProductDetailScreen extends ConsumerWidget {
+class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
   final Widget? customizationWidget;
 
@@ -73,25 +76,42 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         loading: () => const _DetailSkeleton(),
         error: (_, __) => ErrorBanner(
           message: 'Could not load product.',
-          onRetry: () => ref.invalidate(productProvider(productId)),
+          onRetry: () => ref.invalidate(productProvider(widget.productId)),
         ),
         data: (product) => _ProductContent(
           product: product,
-          customizationWidget: customizationWidget,
+          customizationWidget: widget.customizationWidget,
+          currentImageIndex: _currentImageIndex,
+          onImageChanged: (index) {
+            setState(() {
+              _currentImageIndex = index;
+            });
+          },
         ),
       ),
     );
   }
 }
 
-class _ProductContent extends StatelessWidget {
+class _ProductContent extends ConsumerWidget {
   final ProductModel product;
   final Widget? customizationWidget;
+  final int currentImageIndex;
+  final ValueChanged<int> onImageChanged;
 
-  const _ProductContent({required this.product, this.customizationWidget});
+  const _ProductContent({
+    required this.product,
+    this.customizationWidget,
+    required this.currentImageIndex,
+    required this.onImageChanged,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
+    final isWishlisted =
+        currentUser?.wishlist.contains(product.productId) ?? false;
+
     return CustomScrollView(
       slivers: [
         // ── Image Gallery SliverAppBar ─────────────────────────────────
@@ -122,13 +142,46 @@ class _ProductContent extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: const Icon(
-                  Icons.favorite_border_rounded,
-                  color: AppColors.textPrimary,
+                icon: Icon(
+                  isWishlisted
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: isWishlisted ? Colors.red : AppColors.textPrimary,
                   size: 20,
                 ),
-                onPressed: () {
-                  // TODO: M4 — wishlist toggle
+                onPressed: () async {
+                  if (currentUser == null) return;
+                  final uid = currentUser.uid;
+                  final wasWishlisted = isWishlisted;
+                  final newWishlist = List<String>.from(currentUser.wishlist);
+
+                  if (wasWishlisted) {
+                    newWishlist.remove(product.productId);
+                  } else {
+                    newWishlist.add(product.productId);
+                  }
+
+                  // Optimistic UI update
+                  ref.read(currentUserProvider.notifier).state = currentUser
+                      .copyWith(wishlist: newWishlist);
+
+                  try {
+                    await FirestoreService.instance.toggleWishlist(
+                      uid: uid,
+                      productId: product.productId,
+                      isAdding: !wasWishlisted,
+                    );
+                  } catch (e) {
+                    // Revert if error
+                    ref.read(currentUserProvider.notifier).state = currentUser;
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to update wishlist'),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ),
@@ -188,6 +241,11 @@ class _ProductContent extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // Compact Shop Preview
+                _ShopCompactHeader(shopId: product.shopId),
+
                 const SizedBox(height: 20),
 
                 // Description
@@ -420,6 +478,66 @@ class _ImageGallery extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ── Shop Compact Header ───────────────────────────────────────────────────────
+
+class _ShopCompactHeader extends ConsumerWidget {
+  final String shopId;
+
+  const _ShopCompactHeader({required this.shopId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shopAsync = ref.watch(shopProvider(shopId));
+
+    return shopAsync.when(
+      loading: () => const LoadingShimmer(height: 40),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (ShopModel shop) => GestureDetector(
+        onTap: () =>
+            context.pushNamed('shop', pathParameters: {'id': shop.shopId}),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: shop.logoUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: CachedNetworkImage(
+                        imageUrl: shop.logoUrl!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.storefront_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                shop.name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

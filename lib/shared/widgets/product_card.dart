@@ -1,8 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/product_model.dart';
+import '../../models/shop_model.dart';
+import '../../providers/product_provider.dart';
 import 'loading_shimmer.dart';
 
 /// Reusable product card — used on home, search, and category screens.
@@ -12,11 +15,7 @@ class ProductCard extends StatelessWidget {
   final ProductModel product;
   final double width;
 
-  const ProductCard({
-    super.key,
-    required this.product,
-    this.width = 160,
-  });
+  const ProductCard({super.key, required this.product, this.width = 160});
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +50,8 @@ class ProductCard extends StatelessWidget {
                 height: width * 0.85,
                 width: width,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const LoadingShimmer(
-                  height: double.infinity,
-                ),
+                placeholder: (_, __) =>
+                    const LoadingShimmer(height: double.infinity),
                 errorWidget: (_, __, ___) => Container(
                   height: width * 0.85,
                   color: AppColors.background,
@@ -91,12 +89,71 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   _RatingRow(product: product),
+                  const SizedBox(height: 6),
+                  _ShopLogoRow(shopId: product.shopId),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ShopLogoRow extends ConsumerWidget {
+  final String shopId;
+
+  const _ShopLogoRow({required this.shopId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shopAsync = ref.watch(shopProvider(shopId));
+
+    return shopAsync.maybeWhen(
+      data: (ShopModel shop) => GestureDetector(
+        onTap: () =>
+            context.pushNamed('shop', pathParameters: {'id': shop.shopId}),
+        child: Row(
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                shape: BoxShape.circle,
+              ),
+              child: shop.logoUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: shop.logoUrl!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.storefront_rounded,
+                      color: AppColors.primary,
+                      size: 10,
+                    ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                shop.name,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+      orElse: () => const SizedBox(height: 16),
     );
   }
 }
@@ -115,18 +172,12 @@ class _RatingRow extends StatelessWidget {
         const SizedBox(width: 2),
         Text(
           product.avgRating.toStringAsFixed(1),
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
         const SizedBox(width: 2),
         Text(
           '(${product.reviewCount})',
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textHint,
-          ),
+          style: const TextStyle(fontSize: 11, color: AppColors.textHint),
         ),
       ],
     );
@@ -176,8 +227,10 @@ class ProductListTile extends StatelessWidget {
                   width: 72,
                   height: 72,
                   color: AppColors.background,
-                  child: const Icon(Icons.broken_image_outlined,
-                      color: AppColors.textHint),
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: AppColors.textHint,
+                  ),
                 ),
               ),
             ),
@@ -211,7 +264,9 @@ class ProductListTile extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(4),
@@ -226,17 +281,24 @@ class ProductListTile extends StatelessWidget {
                       ),
                       if (product.reviewCount > 0) ...[
                         const SizedBox(width: 8),
-                        const Icon(Icons.star_rounded,
-                            size: 12, color: AppColors.starColor),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 12,
+                          color: AppColors.starColor,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           product.avgRating.toStringAsFixed(1),
                           style: const TextStyle(
-                              fontSize: 11, color: AppColors.textSecondary),
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  _ShopLogoRow(shopId: product.shopId),
                 ],
               ),
             ),
