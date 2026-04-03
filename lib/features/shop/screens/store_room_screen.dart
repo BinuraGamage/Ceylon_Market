@@ -8,6 +8,7 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../../providers/product_provider.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/shop_model.dart';
 
@@ -38,11 +39,7 @@ class StoreRoomScreen extends ConsumerWidget {
         ),
         data: (shop) {
           if (shop == null) {
-            return const Scaffold(
-              body: Center(
-                child: Text('Shop not found.'),
-              ),
-            );
+            return const Scaffold(body: Center(child: Text('Shop not found.')));
           }
           return _StoreRoomContent(shop: shop);
         },
@@ -88,19 +85,28 @@ class _StoreRoomContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.textSecondary, size: 18),
+                  const Icon(
+                    Icons.search,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Search Store',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    'Search Store',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.camera_alt_outlined,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.camera_alt_outlined,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () {}, // Visual search placeholder — M7 feature
             ),
           ],
@@ -120,8 +126,7 @@ class _StoreRoomContent extends ConsumerWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.surface,
-                    border: Border.all(
-                        color: AppColors.primary, width: 3),
+                    border: Border.all(color: AppColors.primary, width: 3),
                   ),
                   child: ClipOval(
                     child: shop.logoUrl != null
@@ -132,8 +137,11 @@ class _StoreRoomContent extends ConsumerWidget {
                             errorWidget: (_, __, ___) =>
                                 const Icon(Icons.store, size: 40),
                           )
-                        : const Icon(Icons.store,
-                            size: 40, color: AppColors.primary),
+                        : const Icon(
+                            Icons.store,
+                            size: 40,
+                            color: AppColors.primary,
+                          ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -141,8 +149,9 @@ class _StoreRoomContent extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   shop.story,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -151,8 +160,11 @@ class _StoreRoomContent extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.star_rounded,
-                        color: AppColors.starColor, size: 18),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: AppColors.starColor,
+                      size: 18,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       shop.avgRating.toStringAsFixed(1),
@@ -172,7 +184,8 @@ class _StoreRoomContent extends ConsumerWidget {
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
                       elevation: 0,
                     ),
                     child: Text('About Us', style: AppTextStyles.button),
@@ -193,7 +206,8 @@ class _StoreRoomContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: 4, // Placeholder — M7 supplies video thumbnails
               separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) => _VideoThumbnailCard(index: index),
+              itemBuilder: (context, index) =>
+                  _VideoThumbnailCard(index: index),
             ),
           ),
         ),
@@ -232,8 +246,11 @@ class _VideoThumbnailCard extends StatelessWidget {
           children: [
             Container(
               color: AppColors.surface,
-              child: const Icon(Icons.image_outlined,
-                  color: AppColors.border, size: 40),
+              child: const Icon(
+                Icons.image_outlined,
+                color: AppColors.border,
+                size: 40,
+              ),
             ),
             Center(
               child: Container(
@@ -243,8 +260,11 @@ class _VideoThumbnailCard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.85),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: AppColors.primary, size: 24),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
             ),
           ],
@@ -261,23 +281,61 @@ class _ShopProductGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: Coordinate with M4 — they own productsByShopProvider
-    // Replace with: final productsAsync = ref.watch(productsByShopProvider(shopId));
-    // For now, showing empty state placeholder
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      sliver: SliverGrid(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => const _ProductPlaceholderCard(),
-          childCount: 4,
-        ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.72,
+    final productsAsync = ref.watch(shopProductsProvider(shopId));
+
+    return productsAsync.when(
+      loading: () => SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        sliver: SliverGrid(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => const _ProductPlaceholderCard(),
+            childCount: 4,
+          ),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.72,
+          ),
         ),
       ),
+      error: (e, _) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ErrorBanner(message: e.toString()),
+        ),
+      ),
+      data: (products) {
+        if (products.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  'No products available in this shop yet.',
+                  style: AppTextStyles.body,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          sliver: SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => ProductCard(product: products[index]),
+              childCount: products.length,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.72,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -299,13 +357,17 @@ class _ProductPlaceholderCard extends StatelessWidget {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
               child: Container(
                 color: AppColors.border,
                 width: double.infinity,
-                child: const Icon(Icons.image_outlined,
-                    color: AppColors.textSecondary, size: 40),
+                child: const Icon(
+                  Icons.image_outlined,
+                  color: AppColors.textSecondary,
+                  size: 40,
+                ),
               ),
             ),
           ),
@@ -314,17 +376,14 @@ class _ProductPlaceholderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                    height: 12, width: 80, color: AppColors.border),
+                Container(height: 12, width: 80, color: AppColors.border),
                 const SizedBox(height: 4),
-                Container(
-                    height: 10, width: 50, color: AppColors.border),
+                Container(height: 10, width: 50, color: AppColors.border),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                        height: 14, width: 60, color: AppColors.border),
+                    Container(height: 14, width: 60, color: AppColors.border),
                     Container(
                       width: 28,
                       height: 28,
@@ -332,8 +391,11 @@ class _ProductPlaceholderCard extends StatelessWidget {
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add,
-                          color: AppColors.textOnPrimary, size: 16),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.textOnPrimary,
+                        size: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -354,12 +416,7 @@ class _StoreRoomShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 60),
-            LoadingShimmer(),
-          ],
-        ),
+        child: Column(children: [SizedBox(height: 60), LoadingShimmer()]),
       ),
     );
   }

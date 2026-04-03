@@ -81,19 +81,28 @@ class _DashboardContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.textSecondary, size: 18),
+                  const Icon(
+                    Icons.search,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Search Store',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    'Search Store',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.camera_alt_outlined,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.camera_alt_outlined,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () {},
             ),
           ],
@@ -115,8 +124,7 @@ class _DashboardContent extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.surface,
-                        border:
-                            Border.all(color: AppColors.primary, width: 3),
+                        border: Border.all(color: AppColors.primary, width: 3),
                       ),
                       child: ClipOval(
                         child: shop.logoUrl != null
@@ -127,14 +135,19 @@ class _DashboardContent extends ConsumerWidget {
                                 errorWidget: (_, __, ___) =>
                                     const Icon(Icons.store, size: 40),
                               )
-                            : const Icon(Icons.store,
-                                size: 40, color: AppColors.primary),
+                            : const Icon(
+                                Icons.store,
+                                size: 40,
+                                color: AppColors.primary,
+                              ),
                       ),
                     ),
                     // Edit logo button
                     GestureDetector(
-                      onTap: () => context.goNamed('edit-shop',
-                          pathParameters: {'id': shop.shopId}),
+                      onTap: () => context.goNamed(
+                        'edit-shop',
+                        pathParameters: {'id': shop.shopId},
+                      ),
                       child: Container(
                         width: 26,
                         height: 26,
@@ -143,8 +156,11 @@ class _DashboardContent extends ConsumerWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: const Icon(Icons.add,
-                            size: 16, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.add,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -154,8 +170,9 @@ class _DashboardContent extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   shop.story,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -166,8 +183,10 @@ class _DashboardContent extends ConsumerWidget {
                   children: [
                     _OutlineButton(
                       label: 'About Us',
-                      onTap: () => context.goNamed('shop-about',
-                          pathParameters: {'id': shop.shopId}),
+                      onTap: () => context.goNamed(
+                        'shop-about',
+                        pathParameters: {'id': shop.shopId},
+                      ),
                     ),
                     const SizedBox(width: 12),
                     _OutlineButton(
@@ -198,20 +217,24 @@ class _DashboardContent extends ConsumerWidget {
                   data: (summary) => Row(
                     children: [
                       _SummaryCard(
-                          label: 'All Orders',
-                          value: summary['all'] ?? 0),
+                        label: 'All Orders',
+                        value: summary['all'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Pending',
-                          value: summary['pending'] ?? 0),
+                        label: 'Pending',
+                        value: summary['pending'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Shipped',
-                          value: summary['shipped'] ?? 0),
+                        label: 'Shipped',
+                        value: summary['shipped'] ?? 0,
+                      ),
                       const SizedBox(width: 8),
                       _SummaryCard(
-                          label: 'Cancelled',
-                          value: summary['cancelled'] ?? 0),
+                        label: 'Cancelled',
+                        value: summary['cancelled'] ?? 0,
+                      ),
                     ],
                   ),
                 ),
@@ -247,7 +270,10 @@ class _OrderFilterTabDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Consumer(
       builder: (context, ref, _) {
         final current = ref.watch(orderFilterProvider);
@@ -263,9 +289,8 @@ class _OrderFilterTabDelegate extends SliverPersistentHeaderDelegate {
               children: List.generate(filters.length, (i) {
                 final selected = current == filters[i];
                 return GestureDetector(
-                  onTap: () => ref
-                      .read(orderFilterProvider.notifier)
-                      .state = filters[i],
+                  onTap: () =>
+                      ref.read(orderFilterProvider.notifier).state = filters[i],
                   child: Padding(
                     padding: const EdgeInsets.only(right: 20),
                     child: Column(
@@ -317,10 +342,7 @@ class _OrderList extends ConsumerWidget {
 
     return ordersAsync.when(
       loading: () => const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: LoadingShimmer(),
-        ),
+        child: Padding(padding: EdgeInsets.all(20), child: LoadingShimmer()),
       ),
       error: (e, _) => SliverToBoxAdapter(
         child: Padding(
@@ -330,9 +352,7 @@ class _OrderList extends ConsumerWidget {
       ),
       data: (orders) {
         if (orders.isEmpty) {
-          return SliverToBoxAdapter(
-            child: _EmptyOrders(),
-          );
+          return SliverToBoxAdapter(child: _EmptyOrders());
         }
         return SliverList(
           delegate: SliverChildBuilderDelegate(
@@ -378,11 +398,15 @@ class _OrderTile extends StatelessWidget {
         : DateTime.now();
 
     // Get first item thumbnail from order snapshot
-    final items = List<Map<String, dynamic>>.from(order['items'] as List? ?? []);
+    final items = List<Map<String, dynamic>>.from(
+      order['items'] as List? ?? [],
+    );
     final firstName = items.isNotEmpty
         ? items.first['name'] as String? ?? 'Product'
         : 'Product';
-    final thumbUrl = items.isNotEmpty ? items.first['thumbnailUrl'] as String? : null;
+    final thumbUrl = items.isNotEmpty
+        ? items.first['thumbnailUrl'] as String?
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -401,8 +425,11 @@ class _OrderTile extends StatelessWidget {
                 border: Border.all(color: AppColors.border),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.delete_outline,
-                  color: AppColors.error, size: 18),
+              child: const Icon(
+                Icons.delete_outline,
+                color: AppColors.error,
+                size: 18,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -423,8 +450,10 @@ class _OrderTile extends StatelessWidget {
                     width: 64,
                     height: 64,
                     color: AppColors.surface,
-                    child: const Icon(Icons.image_outlined,
-                        color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
           ),
           const SizedBox(width: 12),
@@ -438,8 +467,9 @@ class _OrderTile extends StatelessWidget {
                 Text(
                   '#${orderId.substring(0, 6).toUpperCase()}  –  '
                   '${DateFormat('d MMM yyyy').format(createdAt)}',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -451,10 +481,14 @@ class _OrderTile extends StatelessWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: _statusColor(status), width: 1.5),
+                          color: _statusColor(status),
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -495,16 +529,22 @@ class _SummaryCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 4),
-            Text('$value',
-                style: AppTextStyles.heading2
-                    .copyWith(color: AppColors.textPrimary)),
+            Text(
+              '$value',
+              style: AppTextStyles.heading2.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
       ),
@@ -527,19 +567,19 @@ class _OutlineButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: filled ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: filled ? AppColors.primary : AppColors.primary),
+            color: filled ? AppColors.primary : AppColors.primary,
+          ),
         ),
         child: Text(
           label,
           style: AppTextStyles.button.copyWith(
-              color:
-                  filled ? AppColors.textOnPrimary : AppColors.primary),
+            color: filled ? AppColors.textOnPrimary : AppColors.primary,
+          ),
         ),
       ),
     );
@@ -553,15 +593,17 @@ class _EmptyOrders extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         children: [
-          const Icon(Icons.inbox_outlined,
-              size: 56, color: AppColors.textSecondary),
+          const Icon(
+            Icons.inbox_outlined,
+            size: 56,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 12),
           Text('No orders yet', style: AppTextStyles.heading2),
           const SizedBox(height: 4),
           Text(
             'Orders from your customers will appear here.',
-            style:
-                AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -578,11 +620,13 @@ class _NoShopState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.store_mall_directory_outlined,
-              size: 64, color: AppColors.textSecondary),
+          const Icon(
+            Icons.store_mall_directory_outlined,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 16),
-          Text("You don't have a shop yet.",
-              style: AppTextStyles.heading2),
+          Text("You don't have a shop yet.", style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => context.goNamed('seller-register'),
@@ -618,10 +662,14 @@ class _SellerNavBar extends ConsumerWidget {
             onTap: () => context.goNamed('seller-dashboard'),
           ),
           _NavItem(
+            icon: Icons.inventory_2_outlined,
+            label: 'Products',
+            onTap: () => context.pushNamed('seller-products'),
+          ),
+          _NavItem(
             icon: Icons.add_circle_outline_rounded,
             label: 'Add',
-            onTap: () => context.goNamed('add-product'),
-            // TODO: Coordinate with M4 — they own product upload screen
+            onTap: () => context.pushNamed('seller-product-create'),
           ),
           _NavItem(
             icon: Icons.notifications_none_rounded,
@@ -636,8 +684,11 @@ class _SellerNavBar extends ConsumerWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem(
-      {required this.icon, required this.label, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -651,9 +702,10 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.primary, size: 24),
           const SizedBox(height: 2),
-          Text(label,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.primary)),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+          ),
         ],
       ),
     );

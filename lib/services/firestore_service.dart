@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../core/constants/firestore_paths.dart';
 import '../models/product_model.dart';
+import '../models/review_model.dart';
 import '../models/shop_model.dart';
 
 /// Firestore service wrapper — no UI imports, no business logic in widgets.
@@ -23,9 +24,7 @@ class FirestoreService {
   /// Fetch a single product by ID.
   Future<ProductModel> getProduct(String productId) async {
     try {
-      final doc = await _db
-          .doc(FirestorePaths.productDoc(productId))
-          .get();
+      final doc = await _db.doc(FirestorePaths.productDoc(productId)).get();
       if (!doc.exists || doc.data() == null) {
         throw Exception('Product $productId not found');
       }
@@ -42,12 +41,15 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.products)
         .where('isActive', isEqualTo: true)
-        .orderBy('viewCount', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort client-side to avoid Firebase composite index requirements
+          list.sort((a, b) => b.viewCount.compareTo(a.viewCount));
+          return list.take(limit).toList();
+        });
   }
 
   /// Stream products for a specific category, ordered by avgRating desc.
@@ -59,12 +61,15 @@ class FirestoreService {
         .collection(FirestorePaths.products)
         .where('isActive', isEqualTo: true)
         .where('category', isEqualTo: category)
-        .orderBy('avgRating', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort client-side to avoid Firebase composite index requirements
+          list.sort((a, b) => b.avgRating.compareTo(a.avgRating));
+          return list.take(limit).toList();
+        });
   }
 
   /// Stream trending products (highest viewCount in last N docs).
@@ -73,12 +78,15 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.products)
         .where('isActive', isEqualTo: true)
-        .orderBy('viewCount', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort client-side to avoid Firebase composite index requirements
+          list.sort((a, b) => b.viewCount.compareTo(a.viewCount));
+          return list.take(limit).toList();
+        });
   }
 
   /// Keyword search — Firestore prefix search on the 'name' field.
@@ -112,7 +120,8 @@ class FirestoreService {
 
       // Prefix match on name — Firestore range query trick
       if (query.isNotEmpty) {
-        final end = query.substring(0, query.length - 1) +
+        final end =
+            query.substring(0, query.length - 1) +
             String.fromCharCode(query.codeUnitAt(query.length - 1) + 1);
         ref = ref
             .where('name', isGreaterThanOrEqualTo: query)
@@ -229,7 +238,161 @@ class FirestoreService {
 
   // TODO: M1 — auth-related user doc writes go here
   // TODO: M3 — shop analytics writes go here
-  // TODO: M4 — product upload/edit methods go here
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M4 — Inventory & Content Management
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Creates a new product document and returns the generated productId.
+  Future<String> createProduct(ProductModel product) async {
+    try {
+      final doc = _db.collection(FirestorePaths.products).doc();
+      final payload = product.copyWith(
+        productId: doc.id,
+        createdAt: DateTime.now(),
+      );
+      await doc.set(payload.toMap());
+      return doc.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] createProduct error: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates mutable seller fields for a product.
+  Future<void> updateProduct({
+    required String productId,
+    required Map<String, dynamic> updates,
+  }) async {
+    try {
+      await _db.doc(FirestorePaths.productDoc(productId)).update(updates);
+    } catch (e) {
+      debugPrint('[FirestoreService] updateProduct error: $e');
+      rethrow;
+    }
+  }
+
+  /// Soft delete only - never removes a product document.
+  Future<void> softDeleteProduct(String productId) async {
+    try {
+      await _db.doc(FirestorePaths.productDoc(productId)).update({
+        'isActive': false,
+      });
+    } catch (e) {
+      debugPrint('[FirestoreService] softDeleteProduct error: $e');
+      rethrow;
+    }
+  }
+
+  /// Watches seller products by shopId. Includes inactive by default so sellers
+  /// can reactivate/edit old listings.
+  Stream<List<ProductModel>> watchSellerProducts(
+    String shopId, {
+    bool includeInactive = true,
+  }) {
+    Query<Map<String, dynamic>> ref = _db
+        .collection(FirestorePaths.products)
+        .where('shopId', isEqualTo: shopId);
+
+    if (!includeInactive) {
+      ref = ref.where('isActive', isEqualTo: true);
+    }
+
+    return ref.snapshots().map((snap) {
+      final list = snap.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .toList();
+      // Sort locally to avoid Firebase composite index requirement for (shopId + createdAt)
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  /// Watches review list for a given product.
+  Stream<List<ReviewModel>> watchProductReviews(String productId) {
+    return _db
+        .collection(FirestorePaths.reviewsCollection(productId))
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  /// Adds one review per customer per product and updates product/shop ratings.
+  Future<void> submitProductReview({
+    required String productId,
+    required String customerId,
+    required String customerName,
+    required int rating,
+    required String comment,
+  }) async {
+    try {
+      final productRef = _db.doc(FirestorePaths.productDoc(productId));
+      final reviewRef = _db
+          .collection(FirestorePaths.reviewsCollection(productId))
+          .doc(customerId);
+
+      String shopId = '';
+
+      await _db.runTransaction((tx) async {
+        final productSnap = await tx.get(productRef);
+        if (!productSnap.exists || productSnap.data() == null) {
+          throw Exception('Product not found');
+        }
+
+        final reviewSnap = await tx.get(reviewRef);
+        if (reviewSnap.exists) {
+          throw Exception('You already reviewed this product');
+        }
+
+        final productData = productSnap.data()!;
+        shopId = productData['shopId'] as String? ?? '';
+
+        final currentAvg =
+            (productData['avgRating'] as num?)?.toDouble() ?? 0.0;
+        final currentCount = (productData['reviewCount'] as num?)?.toInt() ?? 0;
+        final nextCount = currentCount + 1;
+        final nextAvg = ((currentAvg * currentCount) + rating) / nextCount;
+
+        tx.set(reviewRef, {
+          'reviewId': reviewRef.id,
+          'productId': productId,
+          'customerId': customerId,
+          'customerName': customerName,
+          'rating': rating,
+          'comment': comment,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        tx.update(productRef, {'avgRating': nextAvg, 'reviewCount': nextCount});
+
+        if (shopId.isNotEmpty) {
+          final shopRef = _db.doc(FirestorePaths.shopDoc(shopId));
+          final shopSnap = await tx.get(shopRef);
+          if (shopSnap.exists && shopSnap.data() != null) {
+            final shopData = shopSnap.data()!;
+            final shopAvg = (shopData['avgRating'] as num?)?.toDouble() ?? 0.0;
+            final shopCount = (shopData['reviewCount'] as num?)?.toInt() ?? 0;
+            final shopNextCount = shopCount + 1;
+            final shopNextAvg =
+                ((shopAvg * shopCount) + rating) / shopNextCount;
+
+            tx.update(shopRef, {
+              'avgRating': shopNextAvg,
+              'reviewCount': shopNextCount,
+            });
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('[FirestoreService] submitProductReview error: $e');
+      rethrow;
+    }
+  }
+
   // TODO: M5 — cart and order methods go here
   // TODO: M6 — custom request methods go here
   // TODO: M7 — notification queue writes go here

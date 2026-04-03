@@ -47,8 +47,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       // M3 contract — see AGENTS.md Section 9: M2 → M3 View Event Tracking.
       // TODO: Coordinate with M3 — replace with shopAnalyticsServiceProvider
       // when M3 has implemented it. For now we call incrementViewCount directly.
-      await FirestoreService.instance
-          .incrementViewCount(widget.productId);
+      await FirestoreService.instance.incrementViewCount(widget.productId);
     } catch (e) {
       // Non-critical — swallow silently.
       debugPrint('[ProductDetailScreen] recordView error: $e');
@@ -116,8 +115,10 @@ class _ProductDetailBody extends ConsumerWidget {
                 color: Colors.white.withOpacity(0.85),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.textPrimary),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           actions: [
@@ -129,8 +130,11 @@ class _ProductDetailBody extends ConsumerWidget {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: const Icon(Icons.favorite_border_rounded,
-                    color: AppColors.textPrimary, size: 20),
+                icon: const Icon(
+                  Icons.favorite_border_rounded,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
                 onPressed: () {
                   // TODO: M4 — wishlist toggle
                 },
@@ -174,7 +178,7 @@ class _ProductDetailBody extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    if (product.reviewCount > 0) _RatingBadge(product: product),
+                    _RatingBadge(product: product),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -216,10 +220,7 @@ class _ProductDetailBody extends ConsumerWidget {
 
                 // Materials / sizes / colors (if present)
                 if (product.materials?.isNotEmpty == true)
-                  _AttributeRow(
-                    label: 'Materials',
-                    values: product.materials!,
-                  ),
+                  _AttributeRow(label: 'Materials', values: product.materials!),
                 if (product.sizes?.isNotEmpty == true)
                   _AttributeRow(
                     label: 'Available sizes',
@@ -252,8 +253,10 @@ class _ProductDetailBody extends ConsumerWidget {
                       // )
                       child: const Row(
                         children: [
-                          Icon(Icons.view_in_ar_rounded,
-                              color: AppColors.primary),
+                          Icon(
+                            Icons.view_in_ar_rounded,
+                            color: AppColors.primary,
+                          ),
                           SizedBox(width: 10),
                           Text(
                             'View in your space (AR)',
@@ -272,7 +275,8 @@ class _ProductDetailBody extends ConsumerWidget {
                 if (product.customizable)
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: customizationWidget ??
+                    child:
+                        customizationWidget ??
                         // Fallback placeholder until M6 delivers the widget.
                         Container(
                           padding: const EdgeInsets.all(14),
@@ -284,8 +288,11 @@ class _ProductDetailBody extends ConsumerWidget {
                           // TODO: M6 — Replace placeholder with CustomizationWidget
                           child: const Row(
                             children: [
-                              Icon(Icons.edit_rounded,
-                                  color: AppColors.textSecondary, size: 18),
+                              Icon(
+                                Icons.edit_rounded,
+                                color: AppColors.textSecondary,
+                                size: 18,
+                              ),
                               SizedBox(width: 10),
                               Text(
                                 'Customization options coming soon',
@@ -300,6 +307,45 @@ class _ProductDetailBody extends ConsumerWidget {
                   ),
 
                 // ── Shop preview ───────────────────────────────────────
+                const SizedBox(height: 24),
+
+                // ── Reviews Actions ────────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.rate_review_outlined,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          product.reviewCount > 0
+                              ? 'See what customers are saying'
+                              : 'Be the first to review this product!',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => context.pushNamed(
+                          'product-reviews',
+                          pathParameters: {'id': product.productId},
+                        ),
+                        child: const Text('Read & Write'),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 24),
                 _ShopPreview(shopId: product.shopId),
 
@@ -332,8 +378,11 @@ class _ImageGallery extends StatelessWidget {
     if (images.isEmpty) {
       return Container(
         color: AppColors.background,
-        child: const Icon(Icons.image_not_supported_outlined,
-            size: 64, color: AppColors.textHint),
+        child: const Icon(
+          Icons.image_not_supported_outlined,
+          size: 64,
+          color: AppColors.textHint,
+        ),
       );
     }
 
@@ -398,10 +447,8 @@ class _ShopPreview extends ConsumerWidget {
       loading: () => const LoadingShimmer(height: 72),
       error: (_, __) => const SizedBox.shrink(),
       data: (ShopModel shop) => GestureDetector(
-        onTap: () => context.goNamed(
-          'shop',
-          pathParameters: {'id': shop.shopId},
-        ),
+        onTap: () =>
+            context.goNamed('shop', pathParameters: {'id': shop.shopId}),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -427,8 +474,10 @@ class _ShopPreview extends ConsumerWidget {
                           fit: BoxFit.cover,
                         ),
                       )
-                    : const Icon(Icons.storefront_rounded,
-                        color: AppColors.primary),
+                    : const Icon(
+                        Icons.storefront_rounded,
+                        color: AppColors.primary,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -462,8 +511,11 @@ class _ShopPreview extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.primary, size: 16),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.primary,
+                size: 16,
+              ),
             ],
           ),
         ),
@@ -502,8 +554,7 @@ class ProductDetailBottomBar extends ConsumerWidget {
             children: [
               const Text(
                 'Price',
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               ),
               Text(
                 product.formattedPrice,
@@ -531,8 +582,7 @@ class ProductDetailBottomBar extends ConsumerWidget {
                     }
                   : null,
               icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-              label: Text(
-                  product.isAvailable ? 'Add to cart' : 'Out of stock'),
+              label: Text(product.isAvailable ? 'Add to cart' : 'Out of stock'),
             ),
           ),
         ],
@@ -550,24 +600,33 @@ class _RatingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.star_rounded, size: 16, color: AppColors.starColor),
-        const SizedBox(width: 2),
-        Text(
-          product.avgRating.toStringAsFixed(1),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+    return GestureDetector(
+      onTap: () => context.pushNamed(
+        'product-reviews',
+        pathParameters: {'id': product.productId},
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, size: 16, color: AppColors.starColor),
+          const SizedBox(width: 2),
+          Text(
+            product.avgRating.toStringAsFixed(1),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        Text(
-          ' (${product.reviewCount})',
-          style: const TextStyle(
-              fontSize: 13, color: AppColors.textSecondary),
-        ),
-      ],
+          Text(
+            ' (${product.reviewCount} ${product.reviewCount == 1 ? 'Review' : 'Reviews'})',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.primary,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -631,22 +690,26 @@ class _AttributeRow extends StatelessWidget {
             spacing: 8,
             runSpacing: 6,
             children: values
-                .map((v) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.divider),
+                .map(
+                  (v) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Text(
+                      v,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
                       ),
-                      child: Text(
-                        v,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -674,12 +737,14 @@ class _DetailSkeleton extends StatelessWidget {
               const LoadingShimmer(height: 20, width: 100),
               const SizedBox(height: 20),
               LoadingShimmer(
-                  height: 14,
-                  width: MediaQuery.of(context).size.width * 0.9),
+                height: 14,
+                width: MediaQuery.of(context).size.width * 0.9,
+              ),
               const SizedBox(height: 6),
               LoadingShimmer(
-                  height: 14,
-                  width: MediaQuery.of(context).size.width * 0.7),
+                height: 14,
+                width: MediaQuery.of(context).size.width * 0.7,
+              ),
             ],
           ),
         ),

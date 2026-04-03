@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../models/shop_model.dart';
@@ -10,11 +9,15 @@ import '../../providers/auth_provider.dart'; // M1 owns this — coordinate befo
 
 // ─── Service Provider ─────────────────────────────────────────────────────
 
-final shopServiceProvider = Provider<ShopService>((ref) => ShopService.instance);
+final shopServiceProvider = Provider<ShopService>(
+  (ref) => ShopService.instance,
+);
 
 // ─── Shop Analytics Service (M2 integration contract — AGENTS.md §9) ─────
 // TODO: Coordinate with M2 — they call shopAnalyticsServiceProvider.recordProductView
-final shopAnalyticsServiceProvider = Provider<ShopService>((ref) => ShopService.instance);
+final shopAnalyticsServiceProvider = Provider<ShopService>(
+  (ref) => ShopService.instance,
+);
 
 // ─── Current Seller's Shop ────────────────────────────────────────────────
 
@@ -26,7 +29,10 @@ final myShopProvider = StreamProvider<ShopModel?>((ref) {
 });
 
 /// One-off fetch of a shop by shopId (for store room / public view).
-final shopByIdProvider = FutureProvider.family<ShopModel?, String>((ref, shopId) async {
+final shopByIdProvider = FutureProvider.family<ShopModel?, String>((
+  ref,
+  shopId,
+) async {
   return ref.read(shopServiceProvider).getShop(shopId);
 });
 
@@ -36,11 +42,19 @@ final orderSummaryProvider = StreamProvider<Map<String, int>>((ref) {
   final shopAsync = ref.watch(myShopProvider);
   return shopAsync.when(
     data: (shop) {
-      if (shop == null) return Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0});
+      if (shop == null)
+        return Stream.value({
+          'all': 0,
+          'pending': 0,
+          'shipped': 0,
+          'cancelled': 0,
+        });
       return ref.read(shopServiceProvider).watchOrderSummary(shop.shopId);
     },
-    loading: () => Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
-    error: (_, __) => Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
+    loading: () =>
+        Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
+    error: (_, __) =>
+        Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
   );
 });
 
@@ -55,7 +69,9 @@ final shopOrdersProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return shopAsync.when(
     data: (shop) {
       if (shop == null) return Stream.value([]);
-      return ref.read(shopServiceProvider).watchShopOrders(shop.shopId, statusFilter: filter);
+      return ref
+          .read(shopServiceProvider)
+          .watchShopOrders(shop.shopId, statusFilter: filter);
     },
     loading: () => Stream.value([]),
     error: (_, __) => Stream.value([]),
@@ -64,7 +80,9 @@ final shopOrdersProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
 
 // ─── Analytics Provider ───────────────────────────────────────────────────
 
-final analyticsRangeProvider = StateProvider<String>((ref) => 'weekly'); // 'weekly' | 'monthly'
+final analyticsRangeProvider = StateProvider<String>(
+  (ref) => 'weekly',
+); // 'weekly' | 'monthly'
 
 final shopAnalyticsProvider = FutureProvider<ShopAnalyticsModel>((ref) async {
   final shopAsync = await ref.read(myShopProvider.future);
@@ -89,12 +107,11 @@ class SellerRegistrationState {
     bool? isLoading,
     String? errorMessage,
     bool? isSuccess,
-  }) =>
-      SellerRegistrationState(
-        isLoading: isLoading ?? this.isLoading,
-        errorMessage: errorMessage,
-        isSuccess: isSuccess ?? this.isSuccess,
-      );
+  }) => SellerRegistrationState(
+    isLoading: isLoading ?? this.isLoading,
+    errorMessage: errorMessage,
+    isSuccess: isSuccess ?? this.isSuccess,
+  );
 }
 
 class SellerRegistrationNotifier extends Notifier<SellerRegistrationState> {
@@ -118,7 +135,9 @@ class SellerRegistrationNotifier extends Notifier<SellerRegistrationState> {
       if (uid == null) throw Exception('User not authenticated');
 
       // Create a placeholder shop doc first to get a shopId
-      final shopId = await ref.read(shopServiceProvider).createShop(
+      final shopId = await ref
+          .read(shopServiceProvider)
+          .createShop(
             ShopModel(
               shopId: '', // Will be replaced by Firestore doc ID
               ownerId: uid,
@@ -139,29 +158,32 @@ class SellerRegistrationNotifier extends Notifier<SellerRegistrationState> {
 
       // Upload images if provided
       if (logoFile != null) {
-        final logoUrl =
-            await ref.read(shopServiceProvider).uploadLogo(shopId, logoFile);
-        await ref.read(shopServiceProvider).updateShop(shopId, {'logoUrl': logoUrl});
+        final logoUrl = await ref
+            .read(shopServiceProvider)
+            .uploadLogo(shopId, logoFile);
+        await ref.read(shopServiceProvider).updateShop(shopId, {
+          'logoUrl': logoUrl,
+        });
       }
       if (bannerFile != null) {
-        final bannerUrl =
-            await ref.read(shopServiceProvider).uploadBanner(shopId, bannerFile);
-        await ref.read(shopServiceProvider).updateShop(shopId, {'bannerUrl': bannerUrl});
+        final bannerUrl = await ref
+            .read(shopServiceProvider)
+            .uploadBanner(shopId, bannerFile);
+        await ref.read(shopServiceProvider).updateShop(shopId, {
+          'bannerUrl': bannerUrl,
+        });
       }
 
       // Update user role to 'seller'
       // TODO: Coordinate with M1 — they own auth_service.dart and user role updates
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 }
 
 final sellerRegistrationProvider =
     NotifierProvider<SellerRegistrationNotifier, SellerRegistrationState>(
-  SellerRegistrationNotifier.new,
-);
+      SellerRegistrationNotifier.new,
+    );

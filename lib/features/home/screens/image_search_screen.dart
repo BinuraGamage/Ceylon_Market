@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
-import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
 
 class ImageSearchScreen extends ConsumerWidget {
@@ -46,8 +45,7 @@ class ImageSearchScreen extends ConsumerWidget {
         data: (state) {
           if (state.selectedImage == null) {
             return _PickImagePrompt(
-              onPickImage: (source) =>
-                  _pickAndSearch(context, ref, source),
+              onPickImage: (source) => _pickAndSearch(context, ref, source),
             );
           }
           return _ResultsView(
@@ -80,9 +78,7 @@ class ImageSearchScreen extends ConsumerWidget {
       debugPrint('[ImageSearchScreen] _pickAndSearch error: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not access camera or gallery.'),
-          ),
+          const SnackBar(content: Text('Could not access camera or gallery.')),
         );
       }
     }
@@ -146,8 +142,11 @@ class _PickImagePrompt extends StatelessWidget {
           // Gallery button
           OutlinedButton.icon(
             onPressed: () => onPickImage(ImageSource.gallery),
-            icon: const Icon(Icons.photo_library_rounded,
-                size: 18, color: AppColors.primary),
+            icon: const Icon(
+              Icons.photo_library_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
             label: const Text(
               'Choose from gallery',
               style: TextStyle(color: AppColors.primary),
@@ -181,18 +180,12 @@ class _LoadingState extends StatelessWidget {
           const SizedBox(height: 20),
           const Text(
             'Analysing your image…',
-            style: TextStyle(
-              fontSize: 15,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
           Text(
             'Finding similar local products',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textHint,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textHint),
           ),
         ],
       ),
@@ -259,10 +252,7 @@ class _ResultsView extends StatelessWidget {
                   onPressed: () => onPickNew(ImageSource.gallery),
                   child: const Text(
                     'Change',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: AppColors.primary, fontSize: 13),
                   ),
                 ),
               ],
@@ -274,8 +264,7 @@ class _ResultsView extends StatelessWidget {
         if (state.error != null)
           SliverToBoxAdapter(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -284,10 +273,7 @@ class _ResultsView extends StatelessWidget {
                 ),
                 child: Text(
                   state.error!,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.error,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: AppColors.error),
                 ),
               ),
             ),
@@ -300,8 +286,11 @@ class _ResultsView extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.search_off_rounded,
-                      size: 48, color: AppColors.textHint),
+                  Icon(
+                    Icons.search_off_rounded,
+                    size: 48,
+                    color: AppColors.textHint,
+                  ),
                   SizedBox(height: 12),
                   Text(
                     'No matching products found',
@@ -314,8 +303,7 @@ class _ResultsView extends StatelessWidget {
                   SizedBox(height: 6),
                   Text(
                     'Try a different photo or search by keyword',
-                    style: TextStyle(
-                        color: AppColors.textHint, fontSize: 13),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 13),
                   ),
                 ],
               ),
@@ -332,8 +320,7 @@ class _ResultsView extends StatelessWidget {
                 ),
                 childCount: state.results.length,
               ),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,

@@ -9,6 +9,9 @@ import '../../features/auth/screens/admin_dashboard_stub.dart';
 import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
+import '../../features/products/screens/product_form_screen.dart';
+import '../../features/products/screens/product_reviews_screen.dart';
+import '../../features/products/screens/seller_products_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/shop/screens/seller_register_screen.dart';
 import '../../features/shop/screens/seller_dashboard_screen.dart';
@@ -105,6 +108,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/seller/insights',
         builder: (context, state) => const SellerInsightsScreen(),
       ),
+      GoRoute(
+        name: 'seller-products',
+        path: '/seller/products',
+        builder: (context, state) => const SellerProductsScreen(),
+      ),
+      GoRoute(
+        name: 'seller-product-create',
+        path: '/seller/products/new',
+        builder: (context, state) => const ProductFormScreen(),
+      ),
+      GoRoute(
+        name: 'seller-product-edit',
+        path: '/seller/products/edit/:id',
+        builder: (context, state) =>
+            ProductFormScreen(productId: state.pathParameters['id']!),
+      ),
 
       // ── Shop / Store Room (M3 — public) ──────────────────────────────────
       GoRoute(
@@ -143,6 +162,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // M6 passes customizationWidget via state.extra when product.customizable == true
           customizationWidget: state.extra as Widget?,
         ),
+      ),
+      GoRoute(
+        name: 'product-reviews',
+        path: '/product/:id/reviews',
+        builder: (context, state) =>
+            ProductReviewsScreen(productId: state.pathParameters['id']!),
       ),
 
       // ── Search (M2) ───────────────────────────────────────────────────────

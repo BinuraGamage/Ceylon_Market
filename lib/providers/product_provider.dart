@@ -2,9 +2,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product_model.dart';
+import '../models/review_model.dart';
 import '../models/shop_model.dart';
+import '../providers/auth_provider.dart';
 import '../services/firestore_service.dart';
 import '../services/image_search_service.dart';
+import '../services/storage_service.dart';
+import '../providers/shop_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Service provider
@@ -34,8 +38,10 @@ final activeShopsProvider = FutureProvider<List<ShopModel>>((ref) {
 });
 
 /// Products for a specific shop row — keyed by shopId.
-final shopProductsProvider =
-    FutureProvider.family<List<ProductModel>, String>((ref, shopId) {
+final shopProductsProvider = FutureProvider.family<List<ProductModel>, String>((
+  ref,
+  shopId,
+) {
   return ref.read(firestoreServiceProvider).getProductsByShop(shopId);
 });
 
@@ -44,14 +50,15 @@ final shopProductsProvider =
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Single product fetch — keyed by productId.
-final productProvider =
-    FutureProvider.family<ProductModel, String>((ref, productId) {
+final productProvider = FutureProvider.family<ProductModel, String>((
+  ref,
+  productId,
+) {
   return ref.read(firestoreServiceProvider).getProduct(productId);
 });
 
 /// Single shop fetch — keyed by shopId. Used in product detail screen header.
-final shopProvider =
-    FutureProvider.family<ShopModel, String>((ref, shopId) {
+final shopProvider = FutureProvider.family<ShopModel, String>((ref, shopId) {
   return ref.read(firestoreServiceProvider).getShop(shopId);
 });
 
@@ -62,10 +69,10 @@ final shopProvider =
 /// Real-time product stream for a selected category.
 final categoryProductsProvider =
     StreamProvider.family<List<ProductModel>, String>((ref, category) {
-  return ref
-      .read(firestoreServiceProvider)
-      .watchProductsByCategory(category);
-});
+      return ref
+          .read(firestoreServiceProvider)
+          .watchProductsByCategory(category);
+    });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // M2 — Search State
@@ -111,8 +118,9 @@ final activeSearchFiltersProvider = Provider<SearchFilters>((ref) {
 
 /// Runs the Firestore search query whenever any filter changes.
 /// Uses autoDispose so the query is cancelled when the search screen is left.
-final searchResultsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final searchResultsProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final filters = ref.watch(activeSearchFiltersProvider);
 
   // Don't fire a query if there's nothing to search.
@@ -120,7 +128,9 @@ final searchResultsProvider =
     return [];
   }
 
-  return ref.read(firestoreServiceProvider).searchProducts(
+  return ref
+      .read(firestoreServiceProvider)
+      .searchProducts(
         query: filters.query,
         category: filters.category.isEmpty ? null : filters.category,
         minPrice: filters.minPrice,
@@ -184,12 +194,15 @@ class ImageSearchNotifier extends AsyncNotifier<ImageSearchState> {
       final tags = await imageSearchService.getLabelsFromImage(imageFile);
 
       if (tags.isEmpty) {
-        state = AsyncValue.data(ImageSearchState(
-          selectedImage: imageFile,
-          suggestedTags: [],
-          results: [],
-          error: 'No recognisable features found in image. Try another photo.',
-        ));
+        state = AsyncValue.data(
+          ImageSearchState(
+            selectedImage: imageFile,
+            suggestedTags: [],
+            results: [],
+            error:
+                'No recognisable features found in image. Try another photo.',
+          ),
+        );
         return;
       }
 
@@ -198,11 +211,13 @@ class ImageSearchNotifier extends AsyncNotifier<ImageSearchState> {
           .read(firestoreServiceProvider)
           .searchByTags(tags: tags);
 
-      state = AsyncValue.data(ImageSearchState(
-        selectedImage: imageFile,
-        suggestedTags: tags,
-        results: results,
-      ));
+      state = AsyncValue.data(
+        ImageSearchState(
+          selectedImage: imageFile,
+          suggestedTags: tags,
+          results: results,
+        ),
+      );
     } catch (e, st) {
       debugPrint('[ImageSearchNotifier] error: $e');
       state = AsyncValue.error(e, st);
@@ -216,5 +231,302 @@ class ImageSearchNotifier extends AsyncNotifier<ImageSearchState> {
 
 final imageSearchProvider =
     AsyncNotifierProvider<ImageSearchNotifier, ImageSearchState>(
-  ImageSearchNotifier.new,
+      ImageSearchNotifier.new,
+    );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M4 — Inventory & Content Management
+// ═══════════════════════════════════════════════════════════════════════════
+
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService.instance;
+});
+
+/// Canonical product categories for dropdowns/chips.
+final productCategoriesProvider = Provider<List<String>>((ref) {
+  return ProductCategory.all;
+});
+
+/// Seller inventory stream (includes inactive products for management).
+final sellerProductsProvider = StreamProvider<List<ProductModel>>((ref) {
+  return ref
+      .watch(myShopProvider)
+      .when(
+        data: (shop) {
+          if (shop == null) return Stream.value(<ProductModel>[]);
+          return ref
+              .read(firestoreServiceProvider)
+              .watchSellerProducts(shop.shopId);
+        },
+        loading: () => Stream.value(<ProductModel>[]),
+        error: (_, __) => Stream.value(<ProductModel>[]),
+      );
+});
+
+class SellerProductFormState {
+  final bool isSubmitting;
+  final String? errorMessage;
+  final bool isSuccess;
+
+  const SellerProductFormState({
+    this.isSubmitting = false,
+    this.errorMessage,
+    this.isSuccess = false,
+  });
+
+  SellerProductFormState copyWith({
+    bool? isSubmitting,
+    String? errorMessage,
+    bool? isSuccess,
+  }) {
+    return SellerProductFormState(
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      errorMessage: errorMessage,
+      isSuccess: isSuccess ?? this.isSuccess,
+    );
+  }
+}
+
+class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
+  @override
+  SellerProductFormState build() => const SellerProductFormState();
+
+  Future<void> createProduct({
+    required String name,
+    required String description,
+    required double price,
+    required String category,
+    required int stock,
+    required List<String> tags,
+    required List<String> materials,
+    required List<String> sizes,
+    required List<String> colors,
+    required bool customizable,
+    required bool isAREnabled,
+    String? arModelUrl,
+    required List<File> imageFiles,
+  }) async {
+    state = state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      isSuccess: false,
+    );
+    try {
+      final shop = await ref.read(myShopProvider.future);
+      if (shop == null) {
+        throw Exception(
+          'Seller shop not found. Please complete shop registration.',
+        );
+      }
+
+      final draft = ProductModel(
+        productId: '',
+        shopId: shop.shopId,
+        name: name,
+        description: description,
+        price: price,
+        category: category,
+        images: const [],
+        tags: tags,
+        materials: materials.isEmpty ? null : materials,
+        sizes: sizes.isEmpty ? null : sizes,
+        colors: colors.isEmpty ? null : colors,
+        stock: stock,
+        isActive: true,
+        customizable: customizable,
+        isAREnabled: isAREnabled,
+        arModelUrl: arModelUrl,
+        avgRating: 0,
+        reviewCount: 0,
+        viewCount: 0,
+        createdAt: DateTime.now(),
+      );
+
+      final productId = await ref
+          .read(firestoreServiceProvider)
+          .createProduct(draft);
+
+      if (imageFiles.isNotEmpty) {
+        final imageUrls = await ref
+            .read(storageServiceProvider)
+            .uploadProductImages(
+              files: imageFiles,
+              shopId: shop.shopId,
+              productId: productId,
+            );
+
+        await ref
+            .read(firestoreServiceProvider)
+            .updateProduct(
+              productId: productId,
+              updates: {'images': imageUrls},
+            );
+      }
+
+      ref.invalidate(sellerProductsProvider);
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> updateProduct({
+    required ProductModel existing,
+    required String name,
+    required String description,
+    required double price,
+    required String category,
+    required int stock,
+    required List<String> tags,
+    required List<String> materials,
+    required List<String> sizes,
+    required List<String> colors,
+    required bool customizable,
+    required bool isAREnabled,
+    String? arModelUrl,
+    required List<File> newImageFiles,
+  }) async {
+    state = state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      isSuccess: false,
+    );
+    try {
+      var finalImages = List<String>.from(existing.images);
+      if (newImageFiles.isNotEmpty) {
+        final uploaded = await ref
+            .read(storageServiceProvider)
+            .uploadProductImages(
+              files: newImageFiles,
+              shopId: existing.shopId,
+              productId: existing.productId,
+            );
+        finalImages = [...finalImages, ...uploaded];
+      }
+
+      await ref
+          .read(firestoreServiceProvider)
+          .updateProduct(
+            productId: existing.productId,
+            updates: {
+              'name': name,
+              'description': description,
+              'price': price,
+              'category': category,
+              'stock': stock,
+              'tags': tags,
+              'materials': materials,
+              'sizes': sizes,
+              'colors': colors,
+              'customizable': customizable,
+              'isAREnabled': isAREnabled,
+              'arModelUrl': arModelUrl,
+              'images': finalImages,
+            },
+          );
+
+      ref.invalidate(sellerProductsProvider);
+      ref.invalidate(productProvider(existing.productId));
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> softDeleteProduct(String productId) async {
+    state = state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      isSuccess: false,
+    );
+    try {
+      await ref.read(firestoreServiceProvider).softDeleteProduct(productId);
+      ref.invalidate(sellerProductsProvider);
+      ref.invalidate(productProvider(productId));
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
+    }
+  }
+}
+
+final sellerProductFormProvider =
+    NotifierProvider<SellerProductFormNotifier, SellerProductFormState>(
+      SellerProductFormNotifier.new,
+    );
+
+/// Reviews stream for one product.
+final productReviewsProvider = StreamProvider.family<List<ReviewModel>, String>(
+  (ref, productId) {
+    return ref.read(firestoreServiceProvider).watchProductReviews(productId);
+  },
 );
+
+class ReviewSubmitState {
+  final bool isSubmitting;
+  final String? errorMessage;
+  final bool isSuccess;
+
+  const ReviewSubmitState({
+    this.isSubmitting = false,
+    this.errorMessage,
+    this.isSuccess = false,
+  });
+
+  ReviewSubmitState copyWith({
+    bool? isSubmitting,
+    String? errorMessage,
+    bool? isSuccess,
+  }) {
+    return ReviewSubmitState(
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      errorMessage: errorMessage,
+      isSuccess: isSuccess ?? this.isSuccess,
+    );
+  }
+}
+
+class ReviewSubmitNotifier extends Notifier<ReviewSubmitState> {
+  @override
+  ReviewSubmitState build() => const ReviewSubmitState();
+
+  Future<void> submit({
+    required String productId,
+    required int rating,
+    required String comment,
+  }) async {
+    state = state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      isSuccess: false,
+    );
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) {
+        throw Exception('Please log in to submit a review.');
+      }
+
+      await ref
+          .read(firestoreServiceProvider)
+          .submitProductReview(
+            productId: productId,
+            customerId: user.uid,
+            customerName: user.displayName,
+            rating: rating,
+            comment: comment,
+          );
+
+      ref.invalidate(productReviewsProvider(productId));
+      ref.invalidate(productProvider(productId));
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
+    } catch (e) {
+      debugPrint('[ReviewSubmitNotifier] error: $e');
+      state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
+    }
+  }
+}
+
+final reviewSubmitProvider =
+    NotifierProvider<ReviewSubmitNotifier, ReviewSubmitState>(
+      ReviewSubmitNotifier.new,
+    );
