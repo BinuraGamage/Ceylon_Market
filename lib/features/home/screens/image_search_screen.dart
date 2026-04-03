@@ -24,7 +24,11 @@ class ImageSearchScreen extends ConsumerWidget {
           color: AppColors.textPrimary,
           onPressed: () {
             ref.read(imageSearchProvider.notifier).clearSearch();
-            context.pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed('customer-home');
+            }
           },
         ),
         title: const Text(

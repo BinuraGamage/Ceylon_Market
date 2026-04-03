@@ -2,20 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../models/product_model.dart';
-import '../../../models/shop_model.dart';
 import '../../../providers/product_provider.dart';
-import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 
-class ProductDetailScreen extends ConsumerStatefulWidget {
+class ProductDetailScreen extends ConsumerWidget {
   final String productId;
-
-  /// M6 injects their customization widget via this parameter.
-  /// Leave null until M6 passes it through the router.
-  // TODO: Coordinate with M6 — they will pass this via GoRouter extras.
   final Widget? customizationWidget;
 
   const ProductDetailScreen({
@@ -60,43 +55,40 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: BackButton(
+          color: AppColors.textPrimary,
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed('customer-home');
+            }
+          },
+        ),
+      ),
       body: productAsync.when(
         loading: () => const _DetailSkeleton(),
-        error: (e, _) => Scaffold(
-          appBar: AppBar(
-            leading: const BackButton(),
-            backgroundColor: AppColors.background,
-          ),
-          body: ErrorBanner(
-            message: 'Could not load product.',
-            onRetry: () => ref.invalidate(productProvider(widget.productId)),
-          ),
+        error: (_, __) => ErrorBanner(
+          message: 'Could not load product.',
+          onRetry: () => ref.invalidate(productProvider(productId)),
         ),
-        data: (product) => _ProductDetailBody(
+        data: (product) => _ProductContent(
           product: product,
-          currentImageIndex: _currentImageIndex,
-          onImageChanged: (i) => setState(() => _currentImageIndex = i),
-          customizationWidget: widget.customizationWidget,
+          customizationWidget: customizationWidget,
         ),
       ),
     );
   }
 }
 
-// ── Main Body ─────────────────────────────────────────────────────────────────
-
-class _ProductDetailBody extends ConsumerWidget {
+class _ProductContent extends StatelessWidget {
   final ProductModel product;
-  final int currentImageIndex;
-  final ValueChanged<int> onImageChanged;
   final Widget? customizationWidget;
 
-  const _ProductDetailBody({
-    required this.product,
-    required this.currentImageIndex,
-    required this.onImageChanged,
-    this.customizationWidget,
-  });
+  const _ProductContent({required this.product, this.customizationWidget});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/product_model.dart';
-import '../../../providers/product_provider.dart';
+import '../../../providers/search_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
@@ -36,7 +36,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         elevation: 0,
         leading: BackButton(
           color: AppColors.textPrimary,
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed('customer-home');
+            }
+          },
         ),
         title: _SearchField(controller: _searchController),
         actions: [
@@ -68,7 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           IconButton(
             icon: const Icon(Icons.image_search_rounded,
                 color: AppColors.textPrimary),
-            onPressed: () {}, // TODO: context.goNamed('image-search')
+            onPressed: () => context.goNamed('image-search'),
           ),
         ],
       ),

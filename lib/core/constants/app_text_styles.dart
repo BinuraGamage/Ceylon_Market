@@ -26,6 +26,12 @@ abstract class AppTextStyles {
     color: AppColors.textPrimary,
   );
 
+  static const TextStyle sectionTitle = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+  );
+
   // ── Body ──────────────────────────────────────────────────────────────────
   static const TextStyle body = TextStyle(
     fontSize: 14,
@@ -38,6 +44,13 @@ abstract class AppTextStyles {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
+  );
+
+  static const TextStyle bodySecondary = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textSecondary,
+    height: 1.5,
   );
 
   // ── Label ─────────────────────────────────────────────────────────────────
@@ -60,6 +73,18 @@ abstract class AppTextStyles {
     fontWeight: FontWeight.w600,
     color: AppColors.textOnPrimary,
     letterSpacing: 0.2,
+  );
+
+  static const TextStyle link = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    color: AppColors.primary,
+  );
+
+  static const TextStyle navLabel = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
   );
 
   // ── Price ─────────────────────────────────────────────────────────────────
