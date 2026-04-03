@@ -7,7 +7,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
-import '../../../shared/widgets/product_card.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/shop_model.dart';
 

@@ -41,8 +41,8 @@ class FirestoreService {
   Stream<List<ProductModel>> watchHomeProducts({int limit = 30}) {
     return _db
         .collection(FirestorePaths.products)
-        .where('isActive', isEqualTo: true)
-        .orderBy('viewCount', descending: true)
+        // .where('isActive', isEqualTo: true)
+        // .orderBy('viewCount', descending: true)
         .limit(limit)
         .snapshots()
         .map((snap) => snap.docs
@@ -57,9 +57,9 @@ class FirestoreService {
   }) {
     return _db
         .collection(FirestorePaths.products)
-        .where('isActive', isEqualTo: true)
+        // .where('isActive', isEqualTo: true)
         .where('category', isEqualTo: category)
-        .orderBy('avgRating', descending: true)
+        // .orderBy('avgRating', descending: true)
         .limit(limit)
         .snapshots()
         .map((snap) => snap.docs
@@ -72,8 +72,8 @@ class FirestoreService {
   Stream<List<ProductModel>> watchTrendingProducts({int limit = 10}) {
     return _db
         .collection(FirestorePaths.products)
-        .where('isActive', isEqualTo: true)
-        .orderBy('viewCount', descending: true)
+        // Removed .orderBy to prevent dropping products without viewCount
+        // .where('isActive', isEqualTo: true)
         .limit(limit)
         .snapshots()
         .map((snap) => snap.docs
@@ -94,8 +94,8 @@ class FirestoreService {
     try {
       // Base query — active products only
       Query<Map<String, dynamic>> ref = _db
-          .collection(FirestorePaths.products)
-          .where('isActive', isEqualTo: true);
+          .collection(FirestorePaths.products);
+          // .where('isActive', isEqualTo: true);
 
       // Category filter
       if (category != null && category.isNotEmpty) {
@@ -139,7 +139,7 @@ class FirestoreService {
     try {
       final snap = await _db
           .collection(FirestorePaths.products)
-          .where('isActive', isEqualTo: true)
+          // .where('isActive', isEqualTo: true)
           .where('tags', arrayContainsAny: tags)
           .limit(limit)
           .get();
@@ -161,8 +161,9 @@ class FirestoreService {
       final snap = await _db
           .collection(FirestorePaths.products)
           .where('shopId', isEqualTo: shopId)
-          .where('isActive', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
+          // Relaxing constraints to ensure products show up even if missing fields
+          // .where('isActive', isEqualTo: true)
+          // .orderBy('createdAt', descending: true)
           .limit(limit)
           .get();
       return snap.docs
@@ -211,7 +212,8 @@ class FirestoreService {
     try {
       final snap = await _db
           .collection(FirestorePaths.shops)
-          .where('status', isEqualTo: 'active')
+          // Temporarily removed to ensure newly created shops are visible
+          // .where('status', isEqualTo: 'active')
           .limit(limit)
           .get();
       return snap.docs
