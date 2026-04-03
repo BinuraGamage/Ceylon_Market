@@ -14,6 +14,7 @@ class ShopModel extends Equatable {
   final String city;
   final String? contactPhone;
   final String? contactEmail;
+  final List<String>? videoUrls; // URLs to short videos about the shop
   final double avgRating; // Maintained by aggregation
   final int reviewCount;
   final String status; // 'pending' | 'approved' | 'active' | 'suspended'
@@ -32,6 +33,7 @@ class ShopModel extends Equatable {
     required this.city,
     this.contactPhone,
     this.contactEmail,
+    this.videoUrls,
     required this.avgRating,
     required this.reviewCount,
     required this.status,
@@ -58,6 +60,7 @@ class ShopModel extends Equatable {
       city: map['city'] as String? ?? '',
       contactPhone: map['contactPhone'] as String?,
       contactEmail: map['contactEmail'] as String?,
+      videoUrls: List<String>.from(map['videoUrls'] as List? ?? []),
       avgRating: (map['avgRating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: map['reviewCount'] as int? ?? 0,
       status: map['status'] as String? ?? ShopStatus.pending,
@@ -67,22 +70,23 @@ class ShopModel extends Equatable {
 
   /// Note: shopId is never included in toMap() — it is the Firestore doc ID.
   Map<String, dynamic> toMap() => {
-        'ownerId': ownerId,
-        'name': name,
-        'story': story,
-        if (bannerUrl != null) 'bannerUrl': bannerUrl,
-        if (logoUrl != null) 'logoUrl': logoUrl,
-        'categories': categories,
-        'location': location,
-        'address': address,
-        'city': city,
-        if (contactPhone != null) 'contactPhone': contactPhone,
-        if (contactEmail != null) 'contactEmail': contactEmail,
-        'avgRating': avgRating,
-        'reviewCount': reviewCount,
-        'status': status,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
+    'ownerId': ownerId,
+    'name': name,
+    'story': story,
+    if (bannerUrl != null) 'bannerUrl': bannerUrl,
+    if (logoUrl != null) 'logoUrl': logoUrl,
+    'categories': categories,
+    'location': location,
+    'address': address,
+    'city': city,
+    if (contactPhone != null) 'contactPhone': contactPhone,
+    if (contactEmail != null) 'contactEmail': contactEmail,
+    if (videoUrls != null) 'videoUrls': videoUrls,
+    'avgRating': avgRating,
+    'reviewCount': reviewCount,
+    'status': status,
+    'createdAt': Timestamp.fromDate(createdAt),
+  };
 
   ShopModel copyWith({
     String? shopId,
@@ -97,6 +101,7 @@ class ShopModel extends Equatable {
     String? city,
     String? contactPhone,
     String? contactEmail,
+    List<String>? videoUrls,
     double? avgRating,
     int? reviewCount,
     String? status,
@@ -115,6 +120,7 @@ class ShopModel extends Equatable {
       city: city ?? this.city,
       contactPhone: contactPhone ?? this.contactPhone,
       contactEmail: contactEmail ?? this.contactEmail,
+      videoUrls: videoUrls ?? this.videoUrls,
       avgRating: avgRating ?? this.avgRating,
       reviewCount: reviewCount ?? this.reviewCount,
       status: status ?? this.status,
@@ -124,12 +130,13 @@ class ShopModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        shopId,
-        ownerId,
-        name,
-        status,
-        avgRating,
-      ];
+    shopId,
+    ownerId,
+    name,
+    status,
+    avgRating,
+    videoUrls,
+  ];
 }
 
 /// Valid status strings for ShopModel.
