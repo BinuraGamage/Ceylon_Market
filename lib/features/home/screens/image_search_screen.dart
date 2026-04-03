@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
-import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
 
 class ImageSearchScreen extends ConsumerWidget {
@@ -25,7 +24,11 @@ class ImageSearchScreen extends ConsumerWidget {
           color: AppColors.textPrimary,
           onPressed: () {
             ref.read(imageSearchProvider.notifier).clearSearch();
-            context.pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed('customer-home');
+            }
           },
         ),
         title: const Text(

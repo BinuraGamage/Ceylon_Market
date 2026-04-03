@@ -9,12 +9,13 @@ import '../../features/auth/screens/admin_dashboard_stub.dart';
 import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
+import '../../features/home/screens/category_browse_screen.dart';
+import '../../features/home/screens/placeholder_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/shop/screens/seller_register_screen.dart';
 import '../../features/shop/screens/seller_dashboard_screen.dart';
 import '../../features/shop/screens/seller_insights_screen.dart';
 import '../../features/shop/screens/store_room_screen.dart';
-// import '../../features/home/screens/category_browse_screen.dart'; // M2 to add
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
@@ -157,8 +158,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ImageSearchScreen(),
       ),
 
-      /*
-      // M2 to add:
       GoRoute(
         name: 'category-browse',
         path: '/category/:name',
@@ -166,7 +165,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           category: state.pathParameters['name']!,
         ),
       ),
-      */
+
+      // ── Placeholder routes for pending features ───────────────────────
+      GoRoute(
+        name: 'wishlist',
+        path: '/wishlist',
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Wishlist',
+          message: 'Wishlist screen is coming soon.',
+        ),
+      ),
+      GoRoute(
+        name: 'cart',
+        path: '/cart',
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Cart',
+          message: 'Cart and checkout flow are coming soon.',
+        ),
+      ),
+      GoRoute(
+        name: 'profile',
+        path: '/profile',
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Profile',
+          message: 'Profile screen is coming soon.',
+        ),
+      ),
     ],
   );
 });

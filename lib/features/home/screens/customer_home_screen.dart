@@ -8,6 +8,7 @@ import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
@@ -16,6 +17,7 @@ class CustomerHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 0),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -77,19 +79,21 @@ class _HomeAppBar extends SliverToBoxAdapter {
                   ],
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.image_search_rounded,
-                      color: AppColors.primary),
-                  tooltip: 'Search by image',
-                  onPressed: () {},
-                  // TODO: context.goNamed('image-search') — route added in step below
+                Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.image_search_rounded,
+                        color: AppColors.primary),
+                    tooltip: 'Search by image',
+                    onPressed: () => context.goNamed('image-search'),
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.shopping_bag_outlined,
-                      color: AppColors.textPrimary),
-                  tooltip: 'Cart',
-                  onPressed: () {},
-                  // TODO: M5 owns cart — context.goNamed('cart')
+                Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.shopping_bag_outlined,
+                        color: AppColors.textPrimary),
+                    tooltip: 'Cart',
+                    onPressed: () => context.goNamed('cart'),
+                  ),
                 ),
               ],
             ),
