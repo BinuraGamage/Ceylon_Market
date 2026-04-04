@@ -62,7 +62,9 @@ void _showLogoutDialog(BuildContext context, WidgetRef ref) {
           onPressed: () => Navigator.pop(context),
           child: Text(
             'Cancel',
-            style: AppTextStyles.button.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.button.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         ElevatedButton(

@@ -265,11 +265,20 @@ void _showAboutPopup(BuildContext context, ShopModel shop) {
               const SizedBox(height: 4),
               Wrap(
                 spacing: 8,
-                children: shop.categories.map((c) => Chip(
-                  label: Text(c, style: AppTextStyles.label.copyWith(color: AppColors.textOnPrimary)),
-                  backgroundColor: AppColors.primary,
-                  padding: EdgeInsets.zero,
-                )).toList(),
+                children: shop.categories
+                    .map(
+                      (c) => Chip(
+                        label: Text(
+                          c,
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.textOnPrimary,
+                          ),
+                        ),
+                        backgroundColor: AppColors.primary,
+                        padding: EdgeInsets.zero,
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 16),
               Text('Location', style: AppTextStyles.heading3),
@@ -277,10 +286,17 @@ void _showAboutPopup(BuildContext context, ShopModel shop) {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on, size: 18, color: AppColors.primary),
+                  const Icon(
+                    Icons.location_on,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('${shop.address}\n${shop.city}', style: AppTextStyles.body),
+                    child: Text(
+                      '${shop.address}\n${shop.city}',
+                      style: AppTextStyles.body,
+                    ),
                   ),
                 ],
               ),
@@ -300,7 +316,11 @@ void _showAboutPopup(BuildContext context, ShopModel shop) {
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.email, size: 18, color: AppColors.primary),
+                      const Icon(
+                        Icons.email,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 8),
                       Text(shop.contactEmail!, style: AppTextStyles.body),
                     ],
@@ -312,7 +332,10 @@ void _showAboutPopup(BuildContext context, ShopModel shop) {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close', style: TextStyle(color: AppColors.primary)),
+            child: const Text(
+              'Close',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       );
