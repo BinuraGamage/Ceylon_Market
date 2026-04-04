@@ -16,8 +16,11 @@ class DesignerHomeStub extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.brush_outlined,
-                size: 64, color: AppColors.primary),
+            const Icon(
+              Icons.brush_outlined,
+              size: 64,
+              color: AppColors.primary,
+            ),
             const SizedBox(height: 16),
             Text(
               'Welcome, ${user?.displayName ?? 'Designer'}!',
@@ -41,10 +44,7 @@ class DesignerHomeStub extends ConsumerWidget {
             const SizedBox(height: 8),
             const Text(
               'Tap profile to log out',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
