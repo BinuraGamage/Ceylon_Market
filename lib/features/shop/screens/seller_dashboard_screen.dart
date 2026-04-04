@@ -678,6 +678,11 @@ class _SellerNavBar extends ConsumerWidget {
             onTap: () => context.pushNamed('seller-products'),
           ),
           _NavItem(
+            icon: Icons.receipt_long_outlined,
+            label: 'Orders',
+            onTap: () => context.goNamed('seller-orders'),
+          ),
+          _NavItem(
             icon: Icons.add_circle_outline_rounded,
             label: 'Add',
             onTap: () => context.pushNamed('seller-product-create'),

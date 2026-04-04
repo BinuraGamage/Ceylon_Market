@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../models/product_model.dart';
 import '../../../models/shop_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/cart_provider.dart';
 import '../../../providers/product_provider.dart';
 import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/error_banner.dart';
@@ -88,6 +89,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             });
           },
         ),
+      ),
+      bottomNavigationBar: productAsync.maybeWhen(
+        data: (product) => ProductDetailBottomBar(product: product),
+        orElse: () => null,
       ),
     );
   }
@@ -681,14 +686,30 @@ class ProductDetailBottomBar extends ConsumerWidget {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: product.isAvailable
-                  ? () {
-                      // TODO: M5 — ref.read(cartNotifierProvider.notifier).addItem(...)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Added to cart'),
-                          backgroundColor: AppColors.primary,
-                        ),
-                      );
+                  ? () async {
+                      try {
+                        await ref.read(cartNotifierProvider.notifier).addItem(
+                          productId: product.productId,
+                          shopId: product.shopId,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Added to cart'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to add to cart: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
                     }
                   : null,
               icon: const Icon(Icons.shopping_bag_outlined, size: 18),
