@@ -12,6 +12,7 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/shop_provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../models/shop_model.dart';
 import '../widgets/video_player_widget.dart';
 
@@ -46,6 +47,44 @@ class SellerDashboardScreen extends ConsumerWidget {
   }
 }
 
+void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('Log Out', style: AppTextStyles.heading2),
+      content: const Text(
+        'Are you sure you want to log out of Ceylon Market?',
+        style: AppTextStyles.body,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: AppTextStyles.button.copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(context); // Close dialog
+            await ref.read(authNotifierProvider.notifier).signOut();
+            if (context.mounted) {
+              context.goNamed('login');
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.error,
+            foregroundColor: AppColors.surface,
+            elevation: 0,
+          ),
+          child: const Text('Log Out', style: AppTextStyles.button),
+        ),
+      ],
+    ),
+  );
+}
+
 class _DashboardContent extends ConsumerWidget {
   const _DashboardContent({required this.shop});
   final ShopModel shop;
@@ -63,14 +102,17 @@ class _DashboardContent extends ConsumerWidget {
           pinned: false,
           leading: Padding(
             padding: const EdgeInsets.all(8),
-            child: CircleAvatar(
-              backgroundImage: shop.logoUrl != null
-                  ? CachedNetworkImageProvider(shop.logoUrl!)
-                  : null,
-              backgroundColor: AppColors.surface,
-              child: shop.logoUrl == null
-                  ? const Icon(Icons.person, color: AppColors.textSecondary)
-                  : null,
+            child: GestureDetector(
+              onTap: () => _showLogoutDialog(context, ref),
+              child: CircleAvatar(
+                backgroundImage: shop.logoUrl != null
+                    ? CachedNetworkImageProvider(shop.logoUrl!)
+                    : null,
+                backgroundColor: AppColors.surface,
+                child: shop.logoUrl == null
+                    ? const Icon(Icons.person, color: AppColors.textSecondary)
+                    : null,
+              ),
             ),
           ),
           title: GestureDetector(

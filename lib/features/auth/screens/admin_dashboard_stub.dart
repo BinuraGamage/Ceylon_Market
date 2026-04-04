@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../shared/widgets/current_user_profile_button.dart';
 
 class AdminDashboardStub extends ConsumerWidget {
   const AdminDashboardStub({super.key});
@@ -37,13 +37,14 @@ class AdminDashboardStub extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () async {
-                await ref.read(authNotifierProvider.notifier).signOut();
-                if (context.mounted) context.goNamed('login');
-              },
-              child: const Text('Sign Out',
-                  style: TextStyle(fontFamily: 'Sora')),
+            const CurrentUserProfileButton(radius: 24),
+            const SizedBox(height: 8),
+            const Text(
+              'Tap profile to log out',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),

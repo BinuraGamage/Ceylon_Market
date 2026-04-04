@@ -11,6 +11,7 @@ import '../../../shared/widgets/product_card.dart';
 import '../../../providers/product_provider.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/shop_model.dart';
+import '../widgets/video_player_widget.dart';
 
 /// Public-facing store page — shows shop info, videos, and product grid.
 /// M3 owns this file. Located at features/shop/screens/store_room_screen.dart
@@ -176,10 +177,9 @@ class _StoreRoomContent extends ConsumerWidget {
                 SizedBox(
                   width: 140,
                   child: ElevatedButton(
-                    onPressed: () => context.goNamed(
-                      'shop-about',
-                      pathParameters: {'id': shop.shopId},
-                    ),
+                    onPressed: () {
+                      _showAboutPopup(context, shop);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,
@@ -198,26 +198,39 @@ class _StoreRoomContent extends ConsumerWidget {
         ),
 
         // ── Video Strip ───────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 130,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4, // Placeholder — M7 supplies video thumbnails
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) =>
-                  _VideoThumbnailCard(index: index),
+        if (shop.videoUrls != null && shop.videoUrls!.isNotEmpty)
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 240, // 9:16 scaled down
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: shop.videoUrls!.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final videoUrl = shop.videoUrls![index];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 140, // 9:16 scaled down
+                      color: AppColors.surface,
+                      child: VideoPlayerWidget(
+                        videoUrl: videoUrl,
+                        showFullScreenButton: true,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
-        ),
-
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 32, color: AppColors.border),
+        if (shop.videoUrls != null && shop.videoUrls!.isNotEmpty)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Divider(height: 32, color: AppColors.border),
+            ),
           ),
-        ),
 
         // ── Product Grid ──────────────────────────────────────────────
         // TODO: Coordinate with M4 — they own ProductCard widget
@@ -229,49 +242,82 @@ class _StoreRoomContent extends ConsumerWidget {
   }
 }
 
-/// Placeholder video thumbnail — replace with real video thumbnail when M7 provides it.
-class _VideoThumbnailCard extends StatelessWidget {
-  const _VideoThumbnailCard({required this.index});
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 110,
-        height: 120,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              color: AppColors.surface,
-              child: const Icon(
-                Icons.image_outlined,
-                color: AppColors.border,
-                size: 40,
+void _showAboutPopup(BuildContext context, ShopModel shop) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('About ${shop.name}', style: AppTextStyles.heading2),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (shop.story.isNotEmpty) ...[
+                Text('Our Story', style: AppTextStyles.heading3),
+                const SizedBox(height: 4),
+                Text(shop.story, style: AppTextStyles.body),
+                const SizedBox(height: 16),
+              ],
+              Text('Categories', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: shop.categories.map((c) => Chip(
+                  label: Text(c, style: AppTextStyles.label.copyWith(color: AppColors.textOnPrimary)),
+                  backgroundColor: AppColors.primary,
+                  padding: EdgeInsets.zero,
+                )).toList(),
               ),
-            ),
-            Center(
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
+              const SizedBox(height: 16),
+              Text('Location', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('${shop.address}\n${shop.city}', style: AppTextStyles.body),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text('Contact', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              if (shop.contactPhone != null && shop.contactPhone!.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(shop.contactPhone!, style: AppTextStyles.body),
+                  ],
+                ),
+              if (shop.contactEmail != null && shop.contactEmail!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.email, size: 18, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(shop.contactEmail!, style: AppTextStyles.body),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 /// Sliver product grid for a specific shop.
