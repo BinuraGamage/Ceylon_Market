@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../core/constants/firestore_paths.dart';
+import '../models/cart_item_model.dart';
 import '../models/custom_request_model.dart';
 import '../models/custom_request_message_model.dart';
+import '../models/order_model.dart';
 import '../models/product_model.dart';
 import '../models/review_model.dart';
 import '../models/shop_model.dart';
@@ -426,6 +428,196 @@ class FirestoreService {
       }
     } catch (e) {
       debugPrint('[FirestoreService] toggleWishlist error: $e');
+      rethrow;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M5 — Cart & Order Management
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Stream user's cart items in real-time.
+  Stream<List<CartItemModel>> watchCart(String uid) {
+    return _db
+        .collection(FirestorePaths.cartCollection(uid))
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => CartItemModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Add item to cart or update quantity if already exists.
+  Future<void> addToCart({
+    required String uid,
+    required String productId,
+    required String shopId,
+    int quantity = 1,
+    String? selectedColor,
+    String? selectedSize,
+    String? selectedMaterial,
+    String? customNote,
+  }) async {
+    try {
+      final cartRef = _db.collection(FirestorePaths.cartCollection(uid));
+      final existingItems = await cartRef
+          .where('productId', isEqualTo: productId)
+          .where('selectedColor', isEqualTo: selectedColor)
+          .where('selectedSize', isEqualTo: selectedSize)
+          .where('selectedMaterial', isEqualTo: selectedMaterial)
+          .get();
+
+      if (existingItems.docs.isNotEmpty) {
+        // Update existing item quantity
+        final existingDoc = existingItems.docs.first;
+        final existingItem = CartItemModel.fromMap(existingDoc.data(), existingDoc.id);
+        await existingDoc.reference.update({
+          'quantity': existingItem.quantity + quantity,
+        });
+      } else {
+        // Add new item
+        final doc = cartRef.doc();
+        final cartItem = CartItemModel(
+          cartItemId: doc.id,
+          productId: productId,
+          shopId: shopId,
+          quantity: quantity,
+          selectedColor: selectedColor,
+          selectedSize: selectedSize,
+          selectedMaterial: selectedMaterial,
+          customNote: customNote,
+          addedAt: DateTime.now(),
+        );
+        await doc.set(cartItem.toMap());
+      }
+    } catch (e) {
+      debugPrint('[FirestoreService] addToCart error: $e');
+      rethrow;
+    }
+  }
+
+  /// Update cart item quantity.
+  Future<void> updateCartItemQuantity({
+    required String uid,
+    required String cartItemId,
+    required int quantity,
+  }) async {
+    try {
+      if (quantity <= 0) {
+        await removeFromCart(uid: uid, cartItemId: cartItemId);
+        return;
+      }
+
+      await _db.doc(FirestorePaths.cartItem(uid, cartItemId)).update({
+        'quantity': quantity,
+      });
+    } catch (e) {
+      debugPrint('[FirestoreService] updateCartItemQuantity error: $e');
+      rethrow;
+    }
+  }
+
+  /// Remove item from cart.
+  Future<void> removeFromCart({
+    required String uid,
+    required String cartItemId,
+  }) async {
+    try {
+      await _db.doc(FirestorePaths.cartItem(uid, cartItemId)).delete();
+    } catch (e) {
+      debugPrint('[FirestoreService] removeFromCart error: $e');
+      rethrow;
+    }
+  }
+
+  /// Clear entire cart.
+  Future<void> clearCart(String uid) async {
+    try {
+      final cartItems = await _db.collection(FirestorePaths.cartCollection(uid)).get();
+      final batch = _db.batch();
+      for (final doc in cartItems.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[FirestoreService] clearCart error: $e');
+      rethrow;
+    }
+  }
+
+  /// Create order from cart items.
+  Future<String> createOrder(OrderModel order) async {
+    try {
+      final doc = _db.collection(FirestorePaths.orders).doc();
+      final payload = order.copyWith(
+        orderId: doc.id,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await doc.set(payload.toMap());
+      return doc.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] createOrder error: $e');
+      rethrow;
+    }
+  }
+
+  /// Stream user's orders.
+  Stream<List<OrderModel>> watchUserOrders(String uid) {
+    return _db
+        .collection(FirestorePaths.orders)
+        .where('customerId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Stream orders for a shop (seller view).
+  Stream<List<OrderModel>> watchShopOrders(String shopId) {
+    return _db
+        .collection(FirestorePaths.orders)
+        .where('shopId', isEqualTo: shopId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Update order status.
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    try {
+      await _db.doc(FirestorePaths.orderDoc(orderId)).update({
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('[FirestoreService] updateOrderStatus error: $e');
+      rethrow;
+    }
+  }
+
+  /// Update payment status.
+  Future<void> updatePaymentStatus({
+    required String orderId,
+    required String paymentStatus,
+    String? paymentRef,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'paymentStatus': paymentStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (paymentRef != null) {
+        updates['paymentRef'] = paymentRef;
+      }
+      await _db.doc(FirestorePaths.orderDoc(orderId)).update(updates);
+    } catch (e) {
+      debugPrint('[FirestoreService] updatePaymentStatus error: $e');
       rethrow;
     }
   }

@@ -13,8 +13,9 @@ import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
 import '../../features/home/screens/category_browse_screen.dart';
-import '../../features/home/screens/placeholder_screen.dart';
-import '../../features/home/screens/wishlist_screen.dart';
+import '../../features/checkout/screens/cart_screen.dart';
+import '../../features/checkout/screens/order_history_screen.dart';
+import '../../features/checkout/screens/seller_order_management_screen.dart';
 import '../../features/products/screens/product_form_screen.dart';
 import '../../features/products/screens/product_reviews_screen.dart';
 import '../../features/products/screens/seller_products_screen.dart';
@@ -220,10 +221,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'cart',
         path: '/cart',
-        builder: (context, state) => const PlaceholderScreen(
-          title: 'Cart',
-          message: 'Cart and checkout flow are coming soon.',
-        ),
+        builder: (context, state) => const CartScreen(),
+      ),
+      GoRoute(
+        name: 'checkout',
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        name: 'order-history',
+        path: '/order-history',
+        builder: (context, state) => const OrderHistoryScreen(),
+      ),
+      GoRoute(
+        name: 'seller-orders',
+        path: '/seller/orders',
+        builder: (context, state) => const SellerOrderManagementScreen(),
       ),
       GoRoute(
         name: 'profile',
