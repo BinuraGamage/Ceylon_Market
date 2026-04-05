@@ -14,7 +14,6 @@ import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../models/shop_model.dart';
-import '../../../models/product_model.dart';
 import '../../../providers/product_provider.dart';
 import '../widgets/video_player_widget.dart';
 import '../../../models/offer_model.dart';
@@ -252,6 +251,9 @@ class _DashboardContent extends ConsumerWidget {
                     _OutlineButton(
                       label: 'Create Offer',
                       onTap: () {
+                        ref.invalidate(
+                          sellerProductsByShopProvider(shop.shopId),
+                        );
                         showDialog(
                           context: context,
                           builder: (context) => _CreateOfferDialog(shop: shop),
@@ -1161,15 +1163,19 @@ class _OffersList extends ConsumerWidget {
 
     if (confirm == true) {
       try {
-         await ref.read(firestoreServiceProvider).deleteOffer(offer.id);
-         ref.invalidate(shopOffersProvider(offer.shopId));
-         if (context.mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer deleted')));
-         }
-      } catch(e) {
-         if (context.mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ')));
-         }
+        await ref.read(firestoreServiceProvider).deleteOffer(offer.id);
+        ref.invalidate(shopOffersProvider(offer.shopId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Offer deleted')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: ')));
+        }
       }
     }
   }
@@ -1194,7 +1200,7 @@ class _OffersList extends ConsumerWidget {
                   child: Text(
                     'No offers created yet.',
                     style: AppTextStyles.body.copyWith(
-                       color: AppColors.textSecondary,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -1206,118 +1212,118 @@ class _OffersList extends ConsumerWidget {
               itemCount: offers.length,
               itemBuilder: (context, index) {
                 final offer = offers[index];
-              final discountDisplay = offer.isPercentage
-                  ? '${offer.discountValue.toStringAsFixed(0)}% OFF'
-                  : 'LKR ${offer.discountValue.toStringAsFixed(0)} OFF';
-              final duration =
-                  '${DateFormat('MMM d').format(offer.startDate)} - ${DateFormat('MMM d').format(offer.endDate)}';
-              final status = offer.status;
+                final discountDisplay = offer.isPercentage
+                    ? '${offer.discountValue.toStringAsFixed(0)}% OFF'
+                    : 'LKR ${offer.discountValue.toStringAsFixed(0)} OFF';
+                final duration =
+                    '${DateFormat('MMM d').format(offer.startDate)} - ${DateFormat('MMM d').format(offer.endDate)}';
+                final status = offer.status;
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(offer.title, style: AppTextStyles.label),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(offer.title, style: AppTextStyles.label),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(
+                                      status,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
                                     status,
-                                  ).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: _getStatusColor(status),
-                                    fontWeight: FontWeight.bold,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: _getStatusColor(status),
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              discountDisplay,
+                              style: AppTextStyles.body.copyWith(
+                                color: AppColors.primary,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            discountDisplay,
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.primary,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Duration: $duration',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.textSecondary,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Duration: $duration',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Products: ${offer.productIds.length} products applied',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.textSecondary,
+                            const SizedBox(height: 2),
+                            Text(
+                              'Products: ${offer.productIds.length} products applied',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          ],
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              size: 20,
+                              color: AppColors.textPrimary,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              ref.invalidate(
+                                sellerProductsByShopProvider(shop.shopId),
+                              );
+                              showDialog(
+                                context: context,
+                                builder: (context) => _CreateOfferDialog(
+                                  shop: shop,
+                                  offerToEdit: offer,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: AppColors.error,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _deleteOffer(context, ref, offer),
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            size: 20,
-                            color: AppColors.textPrimary,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () {
-                            final theShop = ref
-                                .read(myShopProvider)
-                                .valueOrNull!; // we know shop exists since we're here
-                            showDialog(
-                              context: context,
-                              builder: (context) => _CreateOfferDialog(
-                                shop: theShop,
-                                offerToEdit: offer,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: AppColors.error,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => _deleteOffer(context, ref, offer),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),
@@ -1454,14 +1460,18 @@ class _CreateOfferDialogState extends ConsumerState<_CreateOfferDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final productsAsync = ref.watch(shopProductsProvider(widget.shop.shopId));
+    final productsAsync = ref.watch(
+      sellerProductsByShopProvider(widget.shop.shopId),
+    );
     final val = double.tryParse(_discountValueController.text.trim()) ?? 0;
 
     return AlertDialog(
@@ -1501,7 +1511,9 @@ class _CreateOfferDialogState extends ConsumerState<_CreateOfferDialog> {
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        final isSelected = _selectedProductIds.contains(product.productId);
+                        final isSelected = _selectedProductIds.contains(
+                          product.productId,
+                        );
                         return CheckboxListTile(
                           value: isSelected,
                           title: Text(product.name, style: AppTextStyles.body),
@@ -1559,8 +1571,11 @@ class _CreateOfferDialogState extends ConsumerState<_CreateOfferDialog> {
 
               Builder(
                 builder: (context) {
-                  final selectedList = productsAsync.valueOrNull
-                          ?.where((p) => _selectedProductIds.contains(p.productId))
+                  final selectedList =
+                      productsAsync.valueOrNull
+                          ?.where(
+                            (p) => _selectedProductIds.contains(p.productId),
+                          )
                           .toList() ??
                       [];
                   if (selectedList.isNotEmpty && val > 0) {
