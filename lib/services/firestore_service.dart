@@ -4,6 +4,7 @@ import '../core/constants/firestore_paths.dart';
 import '../models/product_model.dart';
 import '../models/review_model.dart';
 import '../models/shop_model.dart';
+import '../models/offer_model.dart';
 
 /// Firestore service wrapper — no UI imports, no business logic in widgets.
 /// M2 owns: getProduct, searchProducts, getFeaturedProducts,
@@ -424,6 +425,178 @@ class FirestoreService {
       }
     } catch (e) {
       debugPrint('[FirestoreService] toggleWishlist error: $e');
+      rethrow;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M3/M4 — Offers Management
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Fetches all offers for a shop
+  Future<List<OfferModel>> getShopOffers(String shopId) async {
+    try {
+      final snap = await _db
+          .collection(FirestorePaths.offers)
+          .where('shopId', isEqualTo: shopId)
+          .get();
+      return snap.docs
+          .map((doc) => OfferModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      debugPrint('[FirestoreService] getShopOffers error: $e');
+      rethrow;
+    }
+  }
+
+  /// Creates a new offer and sets `activeOfferId` on its products
+  Future<String> createOffer(OfferModel offer) async {
+    try {
+      final doc = _db.collection(FirestorePaths.offers).doc();
+      final payload = OfferModel(
+        id: doc.id,
+        shopId: offer.shopId,
+        title: offer.title,
+        productIds: offer.productIds,
+        isPercentage: offer.isPercentage,
+        discountValue: offer.discountValue,
+        startDate: offer.startDate,
+        endDate: offer.endDate,
+        minQty: offer.minQty,
+      );
+
+      final batch = _db.batch();
+      batch.set(doc, payload.toMap());
+
+      for (final productId in payload.productIds) {
+        final productRef = _db.doc(FirestorePaths.productDoc(productId));
+        final productSnap = await productRef.get();
+        
+        if (productSnap.exists && productSnap.data() != null) {
+          final data = productSnap.data()!;
+          final double currentPrice = (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
+
+          double newPrice = originalPrice;
+          if (payload.isPercentage) {
+            newPrice = originalPrice - (originalPrice * (payload.discountValue / 100));
+          } else {
+            newPrice = originalPrice - payload.discountValue;
+          }
+          if (newPrice < 0) newPrice = 0.0;
+
+          final updates = <String, dynamic>{
+            'activeOfferId': doc.id,
+            'price': newPrice,
+          };
+          
+          if (data['originalPrice'] == null) {
+            updates['originalPrice'] = currentPrice;
+          }
+          
+          batch.update(productRef, updates);
+        }
+      }
+
+      await batch.commit();
+      return doc.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] createOffer error: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates an offer and resyncs products
+  Future<void> updateOffer(OfferModel offer) async {
+    try {
+      final oldOfferDoc = await _db.doc(FirestorePaths.offerDoc(offer.id)).get();
+      if (!oldOfferDoc.exists) throw Exception('Offer not found');
+
+      final oldOffer = OfferModel.fromMap(oldOfferDoc.data()!, oldOfferDoc.id);
+      final batch = _db.batch();
+      batch.update(_db.doc(FirestorePaths.offerDoc(offer.id)), offer.toMap());
+
+      // Detach removed products
+      final removedProductIds = oldOffer.productIds.where((id) => !offer.productIds.contains(id));
+      for (final productId in removedProductIds) {
+        final productRef = _db.doc(FirestorePaths.productDoc(productId));
+        final productSnap = await productRef.get();
+        if (productSnap.exists && productSnap.data() != null) {
+          final data = productSnap.data()!;
+          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0;
+          batch.update(productRef, {
+            'activeOfferId': FieldValue.delete(),
+            'price': originalPrice,
+            'originalPrice': FieldValue.delete(),
+          });
+        }
+      }
+
+      // Attach new products and update existing products to reflect potentially changed discount
+      for (final productId in offer.productIds) {
+        final productRef = _db.doc(FirestorePaths.productDoc(productId));
+        final productSnap = await productRef.get();
+        if (productSnap.exists && productSnap.data() != null) {
+          final data = productSnap.data()!;
+          final double currentPrice = (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
+
+          double newPrice = originalPrice;
+          if (offer.isPercentage) {
+            newPrice = originalPrice - (originalPrice * (offer.discountValue / 100));
+          } else {
+            newPrice = originalPrice - offer.discountValue;
+          }
+          if (newPrice < 0) newPrice = 0.0;
+
+          final updates = <String, dynamic>{
+            'activeOfferId': offer.id,
+            'price': newPrice,
+          };
+          
+          if (data['originalPrice'] == null) {
+            updates['originalPrice'] = currentPrice;
+          }
+          
+          batch.update(productRef, updates);
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[FirestoreService] updateOffer error: $e');
+      rethrow;
+    }
+  }
+
+  /// Deletes an offer and clears `activeOfferId` from its products
+  Future<void> deleteOffer(String offerId) async {
+    try {
+      final offerDoc = await _db.doc(FirestorePaths.offerDoc(offerId)).get();
+      if (!offerDoc.exists) return;
+
+      final offer = OfferModel.fromMap(offerDoc.data()!, offerDoc.id);
+      final batch = _db.batch();
+      batch.delete(offerDoc.reference);
+
+      // Clear the associated activeOfferId in products and revert price
+      for (final productId in offer.productIds) {
+        final productRef = _db.doc(FirestorePaths.productDoc(productId));
+        final productSnap = await productRef.get();
+        if (productSnap.exists && productSnap.data() != null) {
+          final data = productSnap.data()!;
+          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0;
+          batch.update(productRef, {
+            'activeOfferId': FieldValue.delete(),
+            'price': originalPrice,
+            'originalPrice': FieldValue.delete(),
+          });
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[FirestoreService] deleteOffer error: $e');
       rethrow;
     }
   }
