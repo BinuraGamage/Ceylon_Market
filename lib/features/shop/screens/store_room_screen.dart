@@ -10,7 +10,10 @@ import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../providers/product_provider.dart';
 import '../../../providers/shop_provider.dart';
+import '../../../models/product_model.dart';
+import '../../../models/offer_model.dart';
 import '../../../models/shop_model.dart';
+import '../widgets/video_player_widget.dart';
 
 /// Public-facing store page — shows shop info, videos, and product grid.
 /// M3 owns this file. Located at features/shop/screens/store_room_screen.dart
@@ -176,10 +179,9 @@ class _StoreRoomContent extends ConsumerWidget {
                 SizedBox(
                   width: 140,
                   child: ElevatedButton(
-                    onPressed: () => context.goNamed(
-                      'shop-about',
-                      pathParameters: {'id': shop.shopId},
-                    ),
+                    onPressed: () {
+                      _showAboutPopup(context, shop);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,
@@ -198,26 +200,42 @@ class _StoreRoomContent extends ConsumerWidget {
         ),
 
         // ── Video Strip ───────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 130,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4, // Placeholder — M7 supplies video thumbnails
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) =>
-                  _VideoThumbnailCard(index: index),
+        if (shop.videoUrls != null && shop.videoUrls!.isNotEmpty)
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 240, // 9:16 scaled down
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: shop.videoUrls!.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final videoUrl = shop.videoUrls![index];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 140, // 9:16 scaled down
+                      color: AppColors.surface,
+                      child: VideoPlayerWidget(
+                        videoUrl: videoUrl,
+                        showFullScreenButton: true,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
-        ),
-
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 32, color: AppColors.border),
+        if (shop.videoUrls != null && shop.videoUrls!.isNotEmpty)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Divider(height: 32, color: AppColors.border),
+            ),
           ),
-        ),
+
+        // ── Shop Offers ───────────────────────────────────────────────
+        _ShopOffersSection(shopId: shop.shopId),
 
         // ── Product Grid ──────────────────────────────────────────────
         // TODO: Coordinate with M4 — they own ProductCard widget
@@ -229,49 +247,416 @@ class _StoreRoomContent extends ConsumerWidget {
   }
 }
 
-/// Placeholder video thumbnail — replace with real video thumbnail when M7 provides it.
-class _VideoThumbnailCard extends StatelessWidget {
-  const _VideoThumbnailCard({required this.index});
-  final int index;
+class _ShopOffersSection extends ConsumerWidget {
+  const _ShopOffersSection({required this.shopId});
+  final String shopId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final offersAsync = ref.watch(shopOffersProvider(shopId));
+    final productsAsync = ref.watch(sellerProductsByShopProvider(shopId));
+
+    return offersAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: LoadingShimmer(),
+        ),
+      ),
+      error: (e, _) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ErrorBanner(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(shopOffersProvider(shopId)),
+          ),
+        ),
+      ),
+      data: (offers) {
+        if (offers.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        return productsAsync.when(
+          loading: () => const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: LoadingShimmer(),
+            ),
+          ),
+          error: (e, _) => SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ErrorBanner(
+                message: e.toString(),
+                onRetry: () =>
+                    ref.invalidate(sellerProductsByShopProvider(shopId)),
+              ),
+            ),
+          ),
+          data: (products) {
+            final productsById = {
+              for (final product in products) product.productId: product,
+            };
+
+            final sortedOffers = [...offers]
+              ..sort((a, b) => b.startDate.compareTo(a.startDate));
+
+            final offerSections =
+                <({OfferModel offer, List<ProductModel> products})>[];
+            for (final offer in sortedOffers) {
+              final offeredProducts = offer.productIds
+                  .map((productId) => productsById[productId])
+                  .whereType<ProductModel>()
+                  .where((product) => product.isActive)
+                  .toList();
+              offerSections.add((offer: offer, products: offeredProducts));
+            }
+
+            return SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final section in offerSections) ...[
+                      _OfferShowcaseSection(
+                        offer: section.offer,
+                        products: section.products,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _OfferShowcaseSection extends StatelessWidget {
+  const _OfferShowcaseSection({required this.offer, required this.products});
+
+  final OfferModel offer;
+  final List<ProductModel> products;
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Active':
+        return AppColors.success;
+      case 'Scheduled':
+        return AppColors.info;
+      case 'Expired':
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _discountLabel() {
+    if (offer.isPercentage) {
+      return '${offer.discountValue.toStringAsFixed(0)}% OFF';
+    }
+    return 'LKR ${offer.discountValue.toStringAsFixed(0)} OFF';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 110,
-        height: 120,
-        child: Stack(
-          fit: StackFit.expand,
+    final status = offer.status;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  offer.title,
+                  style: AppTextStyles.heading2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (status != 'Active')
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    status,
+                    style: AppTextStyles.caption.copyWith(
+                      color: _statusColor(status),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (products.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Products for this offer are updating. Please check again in a moment.',
+                style: AppTextStyles.caption,
+              ),
+            )
+          else
+            SizedBox(
+              height: 250,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: products.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) => _OfferProductTile(
+                  offer: offer,
+                  product: products[index],
+                  discountLabel: _discountLabel(),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfferProductTile extends StatelessWidget {
+  const _OfferProductTile({
+    required this.offer,
+    required this.product,
+    required this.discountLabel,
+  });
+
+  final OfferModel offer;
+  final ProductModel product;
+  final String discountLabel;
+
+  double _offerPrice(double basePrice) {
+    final discounted = offer.isPercentage
+        ? basePrice - (basePrice * offer.discountValue / 100)
+        : basePrice - offer.discountValue;
+    return discounted < 0 ? 0 : discounted;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAppliedOffer = product.activeOfferId == offer.id;
+    final originalPrice = hasAppliedOffer && product.originalPrice != null
+        ? product.originalPrice!
+        : product.price;
+    final discountedPrice = hasAppliedOffer
+        ? product.price
+        : _offerPrice(originalPrice);
+    final showStriked = discountedPrice < originalPrice;
+
+    return SizedBox(
+      width: 155,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.pushNamed(
+          'product-detail',
+          pathParameters: {'id': product.productId},
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              color: AppColors.surface,
-              child: const Icon(
-                Icons.image_outlined,
-                color: AppColors.border,
-                size: 40,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: product.thumbnailUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: product.thumbnailUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => const LoadingShimmer(),
+                            errorWidget: (_, __, ___) => Container(
+                              color: AppColors.surface,
+                              child: const Icon(
+                                Icons.image_outlined,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: AppColors.surface,
+                            child: const Icon(
+                              Icons.image_outlined,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        discountLabel,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textOnPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Center(
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
+            const SizedBox(height: 8),
+            Text(
+              product.name,
+              style: AppTextStyles.body,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'LKR ${discountedPrice.toStringAsFixed(0)}',
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w700,
               ),
             ),
+            if (showStriked)
+              Text(
+                'LKR ${originalPrice.toStringAsFixed(0)}',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+void _showAboutPopup(BuildContext context, ShopModel shop) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('About ${shop.name}', style: AppTextStyles.heading2),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (shop.story.isNotEmpty) ...[
+                Text('Our Story', style: AppTextStyles.heading3),
+                const SizedBox(height: 4),
+                Text(shop.story, style: AppTextStyles.body),
+                const SizedBox(height: 16),
+              ],
+              Text('Categories', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: shop.categories
+                    .map(
+                      (c) => Chip(
+                        label: Text(
+                          c,
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.textOnPrimary,
+                          ),
+                        ),
+                        backgroundColor: AppColors.primary,
+                        padding: EdgeInsets.zero,
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              Text('Location', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.location_on,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${shop.address}\n${shop.city}',
+                      style: AppTextStyles.body,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text('Contact', style: AppTextStyles.heading3),
+              const SizedBox(height: 4),
+              if (shop.contactPhone != null && shop.contactPhone!.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(shop.contactPhone!, style: AppTextStyles.body),
+                  ],
+                ),
+              if (shop.contactEmail != null && shop.contactEmail!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.email,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(shop.contactEmail!, style: AppTextStyles.body),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Close',
+              style: TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 /// Sliver product grid for a specific shop.

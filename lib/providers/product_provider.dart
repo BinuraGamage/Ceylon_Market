@@ -45,6 +45,13 @@ final shopProductsProvider = FutureProvider.family<List<ProductModel>, String>((
   return ref.read(firestoreServiceProvider).getProductsByShop(shopId);
 });
 
+/// Seller-side catalog stream for a specific shop (includes all products).
+/// Used where management screens must see the full inventory (e.g. offer form).
+final sellerProductsByShopProvider = StreamProvider.autoDispose
+    .family<List<ProductModel>, String>((ref, shopId) {
+      return ref.read(firestoreServiceProvider).watchSellerProducts(shopId);
+    });
+
 // ═══════════════════════════════════════════════════════════════════════════
 // M2 — Product Detail
 // ═══════════════════════════════════════════════════════════════════════════

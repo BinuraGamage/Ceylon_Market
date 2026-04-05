@@ -4,8 +4,10 @@ import 'dart:io';
 
 import '../models/shop_model.dart';
 import '../models/shop_analytics_model.dart';
+import '../models/offer_model.dart';
 import '../services/shop_service.dart';
 import '../../providers/auth_provider.dart'; // M1 owns this — coordinate before editing
+import 'product_provider.dart' show firestoreServiceProvider;
 
 // ─── Service Provider ─────────────────────────────────────────────────────
 
@@ -187,3 +189,9 @@ final sellerRegistrationProvider =
     NotifierProvider<SellerRegistrationNotifier, SellerRegistrationState>(
       SellerRegistrationNotifier.new,
     );
+
+final shopOffersProvider = StreamProvider.autoDispose
+    .family<List<OfferModel>, String>((ref, shopId) {
+      final service = ref.read(firestoreServiceProvider);
+      return service.watchShopOffers(shopId);
+    });

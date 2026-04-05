@@ -12,8 +12,11 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/shop_provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../models/shop_model.dart';
+import '../../../providers/product_provider.dart';
 import '../widgets/video_player_widget.dart';
+import '../../../models/offer_model.dart';
 
 /// Seller-only dashboard — shows order summary, order list, and shop controls.
 /// M3 owns this file. Located at features/shop/screens/seller_dashboard_screen.dart
@@ -46,6 +49,46 @@ class SellerDashboardScreen extends ConsumerWidget {
   }
 }
 
+void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('Log Out', style: AppTextStyles.heading2),
+      content: const Text(
+        'Are you sure you want to log out of Ceylon Market?',
+        style: AppTextStyles.body,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: AppTextStyles.button.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(context); // Close dialog
+            await ref.read(authNotifierProvider.notifier).signOut();
+            if (context.mounted) {
+              context.goNamed('login');
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.error,
+            foregroundColor: AppColors.surface,
+            elevation: 0,
+          ),
+          child: const Text('Log Out', style: AppTextStyles.button),
+        ),
+      ],
+    ),
+  );
+}
+
 class _DashboardContent extends ConsumerWidget {
   const _DashboardContent({required this.shop});
   final ShopModel shop;
@@ -63,14 +106,17 @@ class _DashboardContent extends ConsumerWidget {
           pinned: false,
           leading: Padding(
             padding: const EdgeInsets.all(8),
-            child: CircleAvatar(
-              backgroundImage: shop.logoUrl != null
-                  ? CachedNetworkImageProvider(shop.logoUrl!)
-                  : null,
-              backgroundColor: AppColors.surface,
-              child: shop.logoUrl == null
-                  ? const Icon(Icons.person, color: AppColors.textSecondary)
-                  : null,
+            child: GestureDetector(
+              onTap: () => _showLogoutDialog(context, ref),
+              child: CircleAvatar(
+                backgroundImage: shop.logoUrl != null
+                    ? CachedNetworkImageProvider(shop.logoUrl!)
+                    : null,
+                backgroundColor: AppColors.surface,
+                child: shop.logoUrl == null
+                    ? const Icon(Icons.person, color: AppColors.textSecondary)
+                    : null,
+              ),
             ),
           ),
           title: GestureDetector(
@@ -182,8 +228,10 @@ class _DashboardContent extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
                     _OutlineButton(
                       label: 'About Us',
@@ -195,11 +243,23 @@ class _DashboardContent extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(width: 12),
                     _OutlineButton(
                       label: 'My Insights',
                       onTap: () => context.goNamed('seller-insights'),
                       filled: true,
+                    ),
+                    _OutlineButton(
+                      label: 'Create Offer',
+                      onTap: () {
+                        ref.invalidate(
+                          sellerProductsByShopProvider(shop.shopId),
+                        );
+                        showDialog(
+                          context: context,
+                          builder: (context) => _CreateOfferDialog(shop: shop),
+                        );
+                      },
+                      filled: false,
                     ),
                   ],
                 ),
@@ -207,6 +267,10 @@ class _DashboardContent extends ConsumerWidget {
 
                 // ── Upload Video Button & Video ScrollView ────────────
                 _ShopVideosList(shop: shop),
+                const SizedBox(height: 20),
+
+                // ── Shop Offers ───────────────────────────────────────
+                _OffersList(shop: shop),
                 const SizedBox(height: 20),
               ],
             ),
@@ -1049,6 +1113,584 @@ class _ShopVideosListState extends ConsumerState<_ShopVideosList> {
               },
             ),
           ),
+      ],
+    );
+  }
+}
+
+// ── Shop Offers ──────────────────────────────────────────────────────────
+
+class _OffersList extends ConsumerWidget {
+  final ShopModel shop;
+  const _OffersList({required this.shop});
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Active':
+        return AppColors.success;
+      case 'Scheduled':
+        return AppColors.info;
+      case 'Expired':
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  void _deleteOffer(
+    BuildContext context,
+    WidgetRef ref,
+    OfferModel offer,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Offer'),
+        content: const Text('Are you sure you want to delete this offer?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(firestoreServiceProvider).deleteOffer(offer.id);
+        ref.invalidate(shopOffersProvider(offer.shopId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Offer deleted')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: ')));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final offersAsync = ref.watch(shopOffersProvider(shop.shopId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('My Offers', style: AppTextStyles.heading2),
+        const SizedBox(height: 12),
+        offersAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Error: $e'),
+          data: (offers) {
+            if (offers.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    'No offers created yet.',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: offers.length,
+              itemBuilder: (context, index) {
+                final offer = offers[index];
+                final discountDisplay = offer.isPercentage
+                    ? '${offer.discountValue.toStringAsFixed(0)}% OFF'
+                    : 'LKR ${offer.discountValue.toStringAsFixed(0)} OFF';
+                final duration =
+                    '${DateFormat('MMM d').format(offer.startDate)} - ${DateFormat('MMM d').format(offer.endDate)}';
+                final status = offer.status;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(offer.title, style: AppTextStyles.label),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(
+                                      status,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: _getStatusColor(status),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              discountDisplay,
+                              style: AppTextStyles.body.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Duration: $duration',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Products: ${offer.productIds.length} products applied',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              size: 20,
+                              color: AppColors.textPrimary,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              ref.invalidate(
+                                sellerProductsByShopProvider(shop.shopId),
+                              );
+                              showDialog(
+                                context: context,
+                                builder: (context) => _CreateOfferDialog(
+                                  shop: shop,
+                                  offerToEdit: offer,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: AppColors.error,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _deleteOffer(context, ref, offer),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ── Create Offer Dialog ───────────────────────────────────────────────────
+
+class _CreateOfferDialog extends ConsumerStatefulWidget {
+  final ShopModel shop;
+  final OfferModel? offerToEdit;
+  const _CreateOfferDialog({required this.shop, this.offerToEdit});
+
+  @override
+  ConsumerState<_CreateOfferDialog> createState() => _CreateOfferDialogState();
+}
+
+class _CreateOfferDialogState extends ConsumerState<_CreateOfferDialog> {
+  final _titleController = TextEditingController();
+  final _discountValueController = TextEditingController();
+  final _minQtyController = TextEditingController();
+
+  List<String> _selectedProductIds = [];
+  bool _isPercentage = true;
+  DateTime? _startDate;
+  DateTime? _endDate;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.offerToEdit != null) {
+      final o = widget.offerToEdit!;
+      _titleController.text = o.title;
+      _discountValueController.text = o.discountValue.toString();
+      _minQtyController.text = o.minQty?.toString() ?? '';
+      _selectedProductIds = List.from(o.productIds);
+      _isPercentage = o.isPercentage;
+      _startDate = o.startDate;
+      _endDate = o.endDate;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _discountValueController.dispose();
+    _minQtyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate(bool isStart) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      if (mounted) {
+        setState(() {
+          if (isStart) {
+            _startDate = picked;
+          } else {
+            _endDate = picked;
+          }
+        });
+      }
+    }
+  }
+
+  void _saveOffer() async {
+    if (_titleController.text.trim().isEmpty ||
+        _selectedProductIds.isEmpty ||
+        _discountValueController.text.trim().isEmpty ||
+        _startDate == null ||
+        _endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final val = double.tryParse(_discountValueController.text.trim()) ?? 0;
+      final minQ = int.tryParse(_minQtyController.text.trim());
+
+      final offer = OfferModel(
+        id: widget.offerToEdit?.id ?? '',
+        shopId: widget.shop.shopId,
+        title: _titleController.text.trim(),
+        productIds: _selectedProductIds,
+        isPercentage: _isPercentage,
+        discountValue: val,
+        startDate: _startDate!,
+        endDate: _endDate!,
+        minQty: minQ,
+      );
+
+      final service = ref.read(firestoreServiceProvider);
+      if (widget.offerToEdit != null) {
+        await service.updateOffer(offer);
+      } else {
+        await service.createOffer(offer);
+      }
+
+      ref.invalidate(shopOffersProvider(widget.shop.shopId));
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.offerToEdit != null
+                  ? 'Offer updated successfully!'
+                  : 'Offer created successfully!',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final productsAsync = ref.watch(
+      sellerProductsByShopProvider(widget.shop.shopId),
+    );
+    final val = double.tryParse(_discountValueController.text.trim()) ?? 0;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Create Offer', style: AppTextStyles.heading2),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.9,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppTextField(
+                controller: _titleController,
+                label: 'Offer Title (e.g., New Year Sale)',
+              ),
+              const SizedBox(height: 16),
+              const Text('Select Products', style: AppTextStyles.label),
+              const SizedBox(height: 8),
+
+              // Products list (Multi-Select)
+              productsAsync.when(
+                loading: () => const LoadingShimmer(),
+                error: (e, _) => ErrorBanner(message: e.toString()),
+                data: (products) {
+                  if (products.isEmpty) {
+                    return const Text('No products available.');
+                  }
+                  return Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        final isSelected = _selectedProductIds.contains(
+                          product.productId,
+                        );
+                        return CheckboxListTile(
+                          value: isSelected,
+                          title: Text(product.name, style: AppTextStyles.body),
+                          activeColor: AppColors.primary,
+                          dense: true,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedProductIds.add(product.productId);
+                              } else {
+                                _selectedProductIds.remove(product.productId);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Discount Type
+              const Text('Discount Type', style: AppTextStyles.label),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      value: true,
+                      groupValue: _isPercentage,
+                      title: const Text('%', style: AppTextStyles.body),
+                      onChanged: (v) => setState(() => _isPercentage = v!),
+                      activeColor: AppColors.primary,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      value: false,
+                      groupValue: _isPercentage,
+                      title: const Text('Fixed', style: AppTextStyles.body),
+                      onChanged: (v) => setState(() => _isPercentage = v!),
+                      activeColor: AppColors.primary,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+              AppTextField(
+                controller: _discountValueController,
+                label: _isPercentage ? 'Discount (%)' : 'Discount (LKR)',
+                keyboardType: TextInputType.number,
+                onChanged: (v) => setState(() {}),
+              ),
+
+              Builder(
+                builder: (context) {
+                  final selectedList =
+                      productsAsync.valueOrNull
+                          ?.where(
+                            (p) => _selectedProductIds.contains(p.productId),
+                          )
+                          .toList() ??
+                      [];
+                  if (selectedList.isNotEmpty && val > 0) {
+                    final oldPrice = selectedList.first.price;
+                    final newPrice = _isPercentage
+                        ? oldPrice - (oldPrice * val / 100)
+                        : oldPrice - val;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          'Preview (${selectedList.first.name}):',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${oldPrice.toStringAsFixed(0)} ➔ LKR ${newPrice < 0 ? 0 : newPrice.toStringAsFixed(0)}',
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Dates
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickDate(true),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _startDate == null
+                              ? 'Start Date'
+                              : DateFormat('MMM d, yyyy').format(_startDate!),
+                          style: AppTextStyles.body,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickDate(false),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _endDate == null
+                              ? 'End Date'
+                              : DateFormat('MMM d, yyyy').format(_endDate!),
+                          style: AppTextStyles.body,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _minQtyController,
+                label: 'Minimum Quantity (Optional)',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _saveOffer,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.textOnPrimary,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Create'),
+        ),
       ],
     );
   }

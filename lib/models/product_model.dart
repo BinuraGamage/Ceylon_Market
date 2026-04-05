@@ -7,6 +7,8 @@ class ProductModel extends Equatable {
   final String name;
   final String description;
   final double price; // Always in LKR
+  final double? originalPrice;
+  final String? activeOfferId;
   final String category; // See AppConstants.productCategories
   final List<String> images; // Firebase Storage URLs — first is thumbnail
   final List<String> tags;
@@ -29,6 +31,8 @@ class ProductModel extends Equatable {
     required this.name,
     required this.description,
     required this.price,
+    this.originalPrice,
+    this.activeOfferId,
     required this.category,
     required this.images,
     required this.tags,
@@ -62,6 +66,10 @@ class ProductModel extends Equatable {
       name: map['name'] as String? ?? '',
       description: map['description'] as String? ?? '',
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      originalPrice: map['originalPrice'] != null
+          ? (map['originalPrice'] as num).toDouble()
+          : null,
+      activeOfferId: map['activeOfferId'] as String?,
       category: map['category'] as String? ?? 'other',
       images: List<String>.from(map['images'] as List? ?? []),
       tags: List<String>.from(map['tags'] as List? ?? []),
@@ -88,26 +96,28 @@ class ProductModel extends Equatable {
 
   /// Note: productId is never included in toMap() — it is the Firestore doc ID.
   Map<String, dynamic> toMap() => {
-        'shopId': shopId,
-        'name': name,
-        'description': description,
-        'price': price,
-        'category': category,
-        'images': images,
-        'tags': tags,
-        if (materials != null) 'materials': materials,
-        if (sizes != null) 'sizes': sizes,
-        if (colors != null) 'colors': colors,
-        'stock': stock,
-        'isActive': isActive,
-        'customizable': customizable,
-        'isAREnabled': isAREnabled,
-        if (arModelUrl != null) 'arModelUrl': arModelUrl,
-        'avgRating': avgRating,
-        'reviewCount': reviewCount,
-        'viewCount': viewCount,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
+    'shopId': shopId,
+    'name': name,
+    'description': description,
+    'price': price,
+    if (originalPrice != null) 'originalPrice': originalPrice,
+    if (activeOfferId != null) 'activeOfferId': activeOfferId,
+    'category': category,
+    'images': images,
+    'tags': tags,
+    if (materials != null) 'materials': materials,
+    if (sizes != null) 'sizes': sizes,
+    if (colors != null) 'colors': colors,
+    'stock': stock,
+    'isActive': isActive,
+    'customizable': customizable,
+    'isAREnabled': isAREnabled,
+    if (arModelUrl != null) 'arModelUrl': arModelUrl,
+    'avgRating': avgRating,
+    'reviewCount': reviewCount,
+    'viewCount': viewCount,
+    'createdAt': Timestamp.fromDate(createdAt),
+  };
 
   ProductModel copyWith({
     String? productId,
@@ -115,6 +125,8 @@ class ProductModel extends Equatable {
     String? name,
     String? description,
     double? price,
+    double? originalPrice,
+    String? activeOfferId,
     String? category,
     List<String>? images,
     List<String>? tags,
@@ -137,6 +149,8 @@ class ProductModel extends Equatable {
       name: name ?? this.name,
       description: description ?? this.description,
       price: price ?? this.price,
+      originalPrice: originalPrice ?? this.originalPrice,
+      activeOfferId: activeOfferId ?? this.activeOfferId,
       category: category ?? this.category,
       images: images ?? this.images,
       tags: tags ?? this.tags,
@@ -157,15 +171,15 @@ class ProductModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        productId,
-        shopId,
-        name,
-        price,
-        category,
-        stock,
-        isActive,
-        avgRating,
-      ];
+    productId,
+    shopId,
+    name,
+    price,
+    category,
+    stock,
+    isActive,
+    avgRating,
+  ];
 }
 
 /// Valid category strings — always use these constants, never hardcode strings.
