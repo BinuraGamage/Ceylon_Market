@@ -19,11 +19,11 @@ class CustomerHomeScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 0),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            _HomeAppBar(),
-            _SearchBar(),
-            _CategoryChips(),
+        child: ListView(
+          children: [
+            const _HomeAppBar(),
+            const _SearchBar(),
+            const _CategoryChips(),
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -33,14 +33,17 @@ class CustomerHomeScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('Custom design service', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                        SizedBox(height: 4),
-                        Text('Request bespoke orders or submit an inquiry'),
-                      ],
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Custom design service', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          SizedBox(height: 4),
+                          Text('Request bespoke orders or submit an inquiry'),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () => context.goNamed('custom-inquiry'),
                       child: const Text('Start'),
@@ -56,14 +59,14 @@ class CustomerHomeScreen extends ConsumerWidget {
                 child: const Text('View My Requests'),
               ),
             ),
-            const SizedBox(height: 12),
             _SectionHeader(
               title: 'Trending',
               onSeeAll: () => context.goNamed('search'),
             ),
             _TrendingRow(),
+            const SizedBox(height: 12),
             _ShopRows(),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -73,200 +76,187 @@ class CustomerHomeScreen extends ConsumerWidget {
 
 // ── App Bar ─────────────────────────────────────────────────────────────────
 
-class _HomeAppBar extends SliverToBoxAdapter {
-  _HomeAppBar()
-      : super(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                // Logo / wordmark
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.storefront_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Ceylon Market',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        fontFamily: 'Sora',
-                      ),
-                    ),
-                  ],
+class _HomeAppBar extends StatelessWidget {
+  const _HomeAppBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Logo / wordmark
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const Spacer(),
-                Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.image_search_rounded,
-                        color: AppColors.primary),
-                    tooltip: 'Search by image',
-                    onPressed: () => context.goNamed('image-search'),
-                  ),
+                child: const Icon(
+                  Icons.storefront_rounded,
+                  color: Colors.white,
+                  size: 18,
                 ),
-                Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.shopping_bag_outlined,
-                        color: AppColors.textPrimary),
-                    tooltip: 'Cart',
-                    onPressed: () => context.goNamed('cart'),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Ceylon Market',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  fontFamily: 'Sora',
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.image_search_rounded, color: AppColors.primary),
+            tooltip: 'Search by image',
+            onPressed: () => context.goNamed('image-search'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.shopping_bag_outlined, color: AppColors.textPrimary),
+            tooltip: 'Cart',
+            onPressed: () => context.goNamed('cart'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Search Bar ───────────────────────────────────────────────────────────────
 
-class _SearchBar extends SliverToBoxAdapter {
-  _SearchBar()
-      : super(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Builder(
-              builder: (context) => GestureDetector(
-                onTap: () => context.goNamed('search'),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: AppColors.divider, width: 1),
-                  ),
-                  child: const Row(
-                    children: [
-                      SizedBox(width: 14),
-                      Icon(Icons.search_rounded,
-                          color: AppColors.textHint, size: 20),
-                      SizedBox(width: 10),
-                      Text(
-                        'Search crafts, clothing, furniture…',
-                        style: TextStyle(
-                            color: AppColors.textHint, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+class _SearchBar extends StatelessWidget {
+  const _SearchBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: GestureDetector(
+        onTap: () => context.goNamed('search'),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider, width: 1),
           ),
-        );
+          child: const Row(
+            children: [
+              SizedBox(width: 14),
+              Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
+              SizedBox(width: 10),
+              Text(
+                'Search crafts, clothing, furniture...',
+                style: TextStyle(color: AppColors.textHint, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Category Chips ───────────────────────────────────────────────────────────
 
-class _CategoryChips extends SliverToBoxAdapter {
-  _CategoryChips()
-      : super(
-          child: SizedBox(
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              itemCount: ProductCategory.all.length + 1, // +1 for "All"
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final isAll = index == 0;
-                final category =
-                    isAll ? '' : ProductCategory.all[index - 1];
-                final label =
-                    isAll ? 'All' : ProductCategory.label(category);
+class _CategoryChips extends StatelessWidget {
+  const _CategoryChips();
 
-                return GestureDetector(
-                  onTap: () {
-                    if (category.isNotEmpty) {
-                      context.goNamed(
-                        'category-browse',
-                        pathParameters: {'name': category},
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isAll
-                          ? AppColors.primary
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isAll
-                            ? AppColors.primary
-                            : AppColors.divider,
-                      ),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isAll
-                            ? AppColors.textOnPrimary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        itemCount: ProductCategory.all.length + 1, // +1 for "All"
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final isAll = index == 0;
+          final category = isAll ? '' : ProductCategory.all[index - 1];
+          final label = isAll ? 'All' : ProductCategory.label(category);
+
+          return GestureDetector(
+            onTap: () {
+              if (category.isNotEmpty) {
+                context.goNamed(
+                  'category-browse',
+                  pathParameters: {'name': category},
                 );
-              },
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: isAll ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isAll ? AppColors.primary : AppColors.divider,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isAll ? AppColors.textOnPrimary : AppColors.textSecondary,
+                ),
+              ),
             ),
-          ),
-        );
+          );
+        },
+      ),
+    );
+  }
 }
 
 // ── Section Header ───────────────────────────────────────────────────────────
 
-class _SectionHeader extends SliverToBoxAdapter {
-  _SectionHeader({required String title, VoidCallback? onSeeAll})
-      : super(
-          child: Padding(
-            padding:
-                const EdgeInsets.fromLTRB(16, 20, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                if (onSeeAll != null)
-                  GestureDetector(
-                    onTap: onSeeAll,
-                    child: const Text(
-                      'See all',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-              ],
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.onSeeAll});
+
+  final String title;
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
-        );
+          if (onSeeAll != null)
+            GestureDetector(
+              onTap: onSeeAll,
+              child: const Text(
+                'See all',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Trending Row ─────────────────────────────────────────────────────────────
@@ -276,29 +266,27 @@ class _TrendingRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trending = ref.watch(trendingProductsProvider);
 
-    return SliverToBoxAdapter(
-      child: trending.when(
-        loading: () => const ShimmerProductRow(),
-        error: (e, _) => ErrorBanner(
-          message: 'Could not load trending products.',
-          onRetry: () => ref.invalidate(trendingProductsProvider),
-        ),
-        data: (products) {
-          if (products.isEmpty) {
-            return const _EmptyRow(message: 'No trending products yet.');
-          }
-          return SizedBox(
-            height: 230,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: products.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => ProductCard(product: products[i]),
-            ),
-          );
-        },
+    return trending.when(
+      loading: () => const ShimmerProductRow(),
+      error: (e, _) => ErrorBanner(
+        message: 'Could not load trending products.',
+        onRetry: () => ref.invalidate(trendingProductsProvider),
       ),
+      data: (products) {
+        if (products.isEmpty) {
+          return const _EmptyRow(message: 'No trending products yet.');
+        }
+        return SizedBox(
+          height: 230,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: products.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => ProductCard(product: products[i]),
+          ),
+        );
+      },
     );
   }
 }
@@ -311,35 +299,30 @@ class _ShopRows extends ConsumerWidget {
     final shopsAsync = ref.watch(activeShopsProvider);
 
     return shopsAsync.when(
-      loading: () => SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (_, __) => const Padding(
+      loading: () => Column(
+        children: const [
+          Padding(
             padding: EdgeInsets.only(top: 8),
             child: ShimmerProductRow(),
           ),
-          childCount: 2,
-        ),
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: ShimmerProductRow(),
+          ),
+        ],
       ),
-      error: (e, _) => SliverToBoxAdapter(
-        child: ErrorBanner(
-          message: 'Could not load shops.',
-          onRetry: () => ref.invalidate(activeShopsProvider),
-        ),
+      error: (e, _) => ErrorBanner(
+        message: 'Could not load shops.',
+        onRetry: () => ref.invalidate(activeShopsProvider),
       ),
       data: (shops) {
         if (shops.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: _EmptyRow(message: 'No shops available yet.'),
-          );
+          return const _EmptyRow(message: 'No shops available yet.');
         }
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final shop = shops[index];
-              return _ShopProductRow(shop: shop);
-            },
-            childCount: shops.length,
-          ),
+        return Column(
+          children: [
+            for (final shop in shops) _ShopProductRow(shop: shop),
+          ],
         );
       },
     );
@@ -405,7 +388,7 @@ class _ShopProductRow extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: products.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (_, i) => ProductCard(product: products[i]),
               );
             },
