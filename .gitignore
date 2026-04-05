@@ -46,3 +46,4 @@ app.*.map.json
 
 AGENTS.md
 .lock
+**/node_modules/
