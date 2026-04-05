@@ -190,7 +190,8 @@ final sellerRegistrationProvider =
       SellerRegistrationNotifier.new,
     );
 
-final shopOffersProvider = FutureProvider.family<List<OfferModel>, String>((ref, shopId) async {
-  final service = ref.read(firestoreServiceProvider);
-  return service.getShopOffers(shopId);
-});
+final shopOffersProvider = StreamProvider.autoDispose
+    .family<List<OfferModel>, String>((ref, shopId) {
+      final service = ref.read(firestoreServiceProvider);
+      return service.watchShopOffers(shopId);
+    });
