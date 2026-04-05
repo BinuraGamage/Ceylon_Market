@@ -37,9 +37,9 @@ dependencies:
   firebase_storage: ^12.4.10
   flutter_image_compress: ^2.4.0
   video_player: ^2.11.1
+  flutter_stripe: ^12.5.0
 
   # Payments (Stripe for LKR transactions)
-  stripe_payment: ^1.0.11
 
 dev_dependencies:
   flutter_test:
