@@ -46,26 +46,26 @@ class OfferModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'shopId': shopId,
-        'title': title,
-        'productIds': productIds,
-        'isPercentage': isPercentage,
-        'discountValue': discountValue,
-        'startDate': Timestamp.fromDate(startDate),
-        'endDate': Timestamp.fromDate(endDate),
-        if (minQty != null) 'minQty': minQty,
-      };
+    'shopId': shopId,
+    'title': title,
+    'productIds': productIds,
+    'isPercentage': isPercentage,
+    'discountValue': discountValue,
+    'startDate': Timestamp.fromDate(startDate),
+    'endDate': Timestamp.fromDate(endDate),
+    if (minQty != null) 'minQty': minQty,
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        shopId,
-        title,
-        productIds,
-        isPercentage,
-        discountValue,
-        startDate,
-        endDate,
-        minQty,
-      ];
+    id,
+    shopId,
+    title,
+    productIds,
+    isPercentage,
+    discountValue,
+    startDate,
+    endDate,
+    minQty,
+  ];
 }
