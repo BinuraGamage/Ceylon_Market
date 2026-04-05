@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
-import '../../models/cart_item_model.dart';
-import '../../models/product_model.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../models/cart_item_model.dart';
+import '../../../models/product_model.dart';
 
 class OrderSummaryCard extends StatelessWidget {
   const OrderSummaryCard({

@@ -37,8 +37,8 @@ class CartItemCard extends StatelessWidget {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const LoadingShimmer(width: 80, height: 80),
-                errorWidget: (_, __, ___) => Container(
+                placeholder: (context, url) => const LoadingShimmer(width: 80, height: 80),
+                errorWidget: (context, url, error) => Container(
                   width: 80,
                   height: 80,
                   color: AppColors.surfaceVariant,
@@ -92,12 +92,14 @@ class CartItemCard extends StatelessWidget {
                   Row(
                     children: [
                       // Price
-                      Text(
-                        product.formattedPrice,
-                        style: AppTextStyles.price,
+                      Expanded(
+                        child: Text(
+                          product.formattedPrice,
+                          style: AppTextStyles.price,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-
-                      const Spacer(),
 
                       // Quantity Controls
                       _QuantityControls(
@@ -105,11 +107,17 @@ class CartItemCard extends StatelessWidget {
                         onChanged: onQuantityChanged,
                       ),
 
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
 
                       // Remove Button
                       IconButton(
                         onPressed: onRemove,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 28,
+                          height: 28,
+                        ),
                         icon: Icon(
                           Icons.delete_outline,
                           color: AppColors.error,
@@ -166,20 +174,27 @@ class _QuantityControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Decrease Button
         IconButton(
           onPressed: quantity > 1 ? () => onChanged(quantity - 1) : null,
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(
+            width: 28,
+            height: 28,
+          ),
           icon: Icon(
             Icons.remove,
-            size: 20,
+            size: 16,
             color: quantity > 1 ? AppColors.primary : AppColors.outline,
           ),
         ),
 
         // Quantity Display
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.outline),
             borderRadius: BorderRadius.circular(4),
@@ -193,9 +208,15 @@ class _QuantityControls extends StatelessWidget {
         // Increase Button
         IconButton(
           onPressed: () => onChanged(quantity + 1),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(
+            width: 28,
+            height: 28,
+          ),
           icon: Icon(
             Icons.add,
-            size: 20,
+            size: 16,
             color: AppColors.primary,
           ),
         ),

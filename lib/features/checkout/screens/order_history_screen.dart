@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
-import '../../models/order_model.dart';
-import '../../providers/order_provider.dart';
-import '../../shared/widgets/error_banner.dart';
-import '../../shared/widgets/loading_shimmer.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../models/order_model.dart';
+import '../../../providers/order_provider.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
 
 class OrderHistoryScreen extends ConsumerWidget {
   const OrderHistoryScreen({super.key});

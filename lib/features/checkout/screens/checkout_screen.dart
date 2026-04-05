@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:stripe_payment/stripe_payment.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:cloud_functions/cloud_functions.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
-import '../../models/order_model.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/cart_provider.dart';
-import '../../providers/order_provider.dart';
-import '../../shared/widgets/app_button.dart';
-import '../../shared/widgets/app_text_field.dart';
-import '../../shared/widgets/error_banner.dart';
-import '../../shared/widgets/loading_shimmer.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../models/order_model.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/cart_provider.dart';
+import '../../../providers/order_provider.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/error_banner.dart';
 import '../widgets/order_summary_card.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
@@ -44,13 +43,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   void _initializeStripe() {
     // Initialize Stripe with test publishable key
-    StripePayment.setOptions(
-      StripeOptions(
-        publishableKey: "pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ", // Test key for LKR transactions
-        merchantId: "merchant.ceylonmarket", // Optional
-        androidPayMode: 'test', // Test mode for Android
-      ),
-    );
+    Stripe.publishableKey = 'pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ';
+    Stripe.merchantIdentifier = 'merchant.ceylonmarket';
   }
 
   @override
@@ -246,13 +240,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
 
       // Process payment with Stripe
-      await _processStripePayment(finalTotal, order, orderNotifier);
+      await _processStripePayment(context, finalTotal, order, orderNotifier);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to process payment: $e')),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to process payment: $e')),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -263,55 +256,48 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processStripePayment(
+    BuildContext context,
     double amount,
     OrderModel order,
     OrderNotifier orderNotifier,
   ) async {
     try {
-      // Create payment method
-      final paymentMethod = await StripePayment.paymentRequestWithCardForm(
-        CardFormPaymentRequest(),
-      );
-
       // Create payment intent via Cloud Function
       final paymentIntent = await _createPaymentIntent(amount);
-
-      // Confirm payment
-      final paymentResult = await StripePayment.confirmPaymentIntent(
-        PaymentIntent(
-          clientSecret: paymentIntent['client_secret'],
-          paymentMethodId: paymentMethod.id,
+      
+      // Initialize Payment Sheet
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: paymentIntent['client_secret'],
+          merchantDisplayName: 'Ceylon Market',
         ),
       );
 
-      if (paymentResult.status == 'succeeded') {
-        // Payment successful - create order
-        final orderId = await orderNotifier.createOrder(order.copyWith(
-          paymentStatus: 'paid',
-          paymentRef: paymentResult.paymentIntentId,
-        ));
+      // Present Payment Sheet
+      await Stripe.instance.presentPaymentSheet();
 
-        // Clear cart after successful order
-        await ref.read(cartNotifierProvider.notifier).clearCart();
+      // Payment successful - create order
+      final orderId = await orderNotifier.createOrder(order.copyWith(
+        paymentStatus: 'paid',
+        paymentRef: paymentIntent['id'], // 'id' from stripe intent usually (if backend returns it) or just client_secret
+      ));
 
-        if (mounted) {
-          // Navigate to order confirmation
-          context.go('/order-confirmation/$orderId');
-        }
-      } else {
-        // Payment failed
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Payment failed. Please try again.')),
-          );
-        }
-      }
+      // Clear cart after successful order
+      await ref.read(cartNotifierProvider.notifier).clearCart();
+
+      if (!context.mounted) return;
+      // Navigate to order confirmation
+      context.go('/order-confirmation/$orderId');
+    } on StripeException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: ${e.error.localizedMessage}')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment error: $e')),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment error: $e')),
+      );
     }
   }
 
@@ -579,7 +565,7 @@ class _PaymentMethodSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

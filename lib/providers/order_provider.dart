@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/order_model.dart';
-import '../services/firestore_service.dart';
 import 'auth_provider.dart';
+import 'product_provider.dart' show firestoreServiceProvider;
 
 // ── User Orders Stream Provider ───────────────────────────────────────────
 final userOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
@@ -12,8 +12,7 @@ final userOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchUserOrders(authState.value!.uid);
 });
 
-// ── Shop Orders Stream Provider ───────────────────────────────────────────
-final shopOrdersProvider = StreamProvider.family<List<OrderModel>, String>((ref, shopId) {
+final shopOrdersProviderOrder = StreamProvider.family<List<OrderModel>, String>((ref, shopId) {
   return ref.watch(firestoreServiceProvider).watchShopOrders(shopId);
 });
 

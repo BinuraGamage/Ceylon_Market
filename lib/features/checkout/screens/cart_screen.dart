@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
-import '../../models/cart_item_model.dart';
-import '../../models/product_model.dart';
-import '../../providers/cart_provider.dart';
-import '../../shared/widgets/app_button.dart';
-import '../../shared/widgets/error_banner.dart';
-import '../../shared/widgets/loading_shimmer.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../models/cart_item_model.dart';
+import '../../../models/product_model.dart';
+import '../../../providers/cart_provider.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
 import '../widgets/cart_item_card.dart';
 
 class CartScreen extends ConsumerWidget {
@@ -24,19 +24,15 @@ class CartScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('Cart (${itemCount})'),
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        foregroundColor: AppColors.textOnPrimary,
       ),
       body: cartWithProducts.when(
         loading: () => const _CartLoadingView(),
-        error: (error, stack) => ErrorBanner(
-          message: 'Failed to load cart: ${error.toString()}',
-        ),
+        error: (error, stack) =>
+            ErrorBanner(message: 'Failed to load cart: ${error.toString()}'),
         data: (items) => items.isEmpty
             ? const _EmptyCartView()
-            : _CartContentView(
-                items: items,
-                total: cartTotal,
-              ),
+            : _CartContentView(items: items, total: cartTotal),
       ),
     );
   }
@@ -70,17 +66,14 @@ class _EmptyCartView extends StatelessWidget {
           Icon(
             Icons.shopping_cart_outlined,
             size: 80,
-            color: AppColors.outline,
+            color: AppColors.textSecondary,
           ),
           const SizedBox(height: 16),
-          Text(
-            'Your cart is empty',
-            style: AppTextStyles.heading2,
-          ),
+          Text('Your cart is empty', style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           Text(
             'Add some products to get started',
-            style: AppTextStyles.body.copyWith(color: AppColors.outline),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           AppButton(
@@ -94,10 +87,7 @@ class _EmptyCartView extends StatelessWidget {
 }
 
 class _CartContentView extends ConsumerWidget {
-  const _CartContentView({
-    required this.items,
-    required this.total,
-  });
+  const _CartContentView({required this.items, required this.total});
 
   final List<Map<String, dynamic>> items;
   final double total;
@@ -132,20 +122,14 @@ class _CartContentView extends ConsumerWidget {
             },
           ),
         ),
-        _CartSummary(
-          itemCount: items.length,
-          total: total,
-        ),
+        _CartSummary(itemCount: items.length, total: total),
       ],
     );
   }
 }
 
 class _CartSummary extends StatelessWidget {
-  const _CartSummary({
-    required this.itemCount,
-    required this.total,
-  });
+  const _CartSummary({required this.itemCount, required this.total});
 
   final int itemCount;
   final double total;

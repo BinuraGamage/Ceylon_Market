@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
-import '../../models/order_model.dart';
-import '../../providers/order_provider.dart';
-import '../../providers/shop_provider.dart';
-import '../../shared/widgets/app_button.dart';
-import '../../shared/widgets/error_banner.dart';
-import '../../shared/widgets/loading_shimmer.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../models/order_model.dart';
+import '../../../providers/order_provider.dart' as order_prov;
+import '../../../providers/shop_provider.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
 
 class SellerOrderManagementScreen extends ConsumerWidget {
   const SellerOrderManagementScreen({super.key});
@@ -34,7 +34,7 @@ class SellerOrderManagementScreen extends ConsumerWidget {
           );
         }
 
-        final ordersAsync = ref.watch(shopOrdersProvider(shop.shopId));
+        final ordersAsync = ref.watch(order_prov.shopOrdersProviderOrder(shop.shopId));
 
         return Scaffold(
           appBar: AppBar(
@@ -110,7 +110,7 @@ class _OrdersListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orderNotifier = ref.watch(orderNotifierProvider.notifier);
+    final orderNotifier = ref.watch(order_prov.orderNotifierProvider.notifier);
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
