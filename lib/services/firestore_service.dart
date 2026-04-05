@@ -449,6 +449,19 @@ class FirestoreService {
     }
   }
 
+  /// Watches offers for a shop in real time.
+  Stream<List<OfferModel>> watchShopOffers(String shopId) {
+    return _db
+        .collection(FirestorePaths.offers)
+        .where('shopId', isEqualTo: shopId)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) => OfferModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
   /// Creates a new offer and sets `activeOfferId` on its products
   Future<String> createOffer(OfferModel offer) async {
     try {
@@ -471,15 +484,18 @@ class FirestoreService {
       for (final productId in payload.productIds) {
         final productRef = _db.doc(FirestorePaths.productDoc(productId));
         final productSnap = await productRef.get();
-        
+
         if (productSnap.exists && productSnap.data() != null) {
           final data = productSnap.data()!;
-          final double currentPrice = (data['price'] as num?)?.toDouble() ?? 0.0;
-          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
+          final double currentPrice =
+              (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice =
+              (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
 
           double newPrice = originalPrice;
           if (payload.isPercentage) {
-            newPrice = originalPrice - (originalPrice * (payload.discountValue / 100));
+            newPrice =
+                originalPrice - (originalPrice * (payload.discountValue / 100));
           } else {
             newPrice = originalPrice - payload.discountValue;
           }
@@ -489,11 +505,11 @@ class FirestoreService {
             'activeOfferId': doc.id,
             'price': newPrice,
           };
-          
+
           if (data['originalPrice'] == null) {
             updates['originalPrice'] = currentPrice;
           }
-          
+
           batch.update(productRef, updates);
         }
       }
@@ -509,7 +525,9 @@ class FirestoreService {
   /// Updates an offer and resyncs products
   Future<void> updateOffer(OfferModel offer) async {
     try {
-      final oldOfferDoc = await _db.doc(FirestorePaths.offerDoc(offer.id)).get();
+      final oldOfferDoc = await _db
+          .doc(FirestorePaths.offerDoc(offer.id))
+          .get();
       if (!oldOfferDoc.exists) throw Exception('Offer not found');
 
       final oldOffer = OfferModel.fromMap(oldOfferDoc.data()!, oldOfferDoc.id);
@@ -517,13 +535,18 @@ class FirestoreService {
       batch.update(_db.doc(FirestorePaths.offerDoc(offer.id)), offer.toMap());
 
       // Detach removed products
-      final removedProductIds = oldOffer.productIds.where((id) => !offer.productIds.contains(id));
+      final removedProductIds = oldOffer.productIds.where(
+        (id) => !offer.productIds.contains(id),
+      );
       for (final productId in removedProductIds) {
         final productRef = _db.doc(FirestorePaths.productDoc(productId));
         final productSnap = await productRef.get();
         if (productSnap.exists && productSnap.data() != null) {
           final data = productSnap.data()!;
-          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice =
+              (data['originalPrice'] as num?)?.toDouble() ??
+              (data['price'] as num?)?.toDouble() ??
+              0.0;
           batch.update(productRef, {
             'activeOfferId': FieldValue.delete(),
             'price': originalPrice,
@@ -538,12 +561,15 @@ class FirestoreService {
         final productSnap = await productRef.get();
         if (productSnap.exists && productSnap.data() != null) {
           final data = productSnap.data()!;
-          final double currentPrice = (data['price'] as num?)?.toDouble() ?? 0.0;
-          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
+          final double currentPrice =
+              (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice =
+              (data['originalPrice'] as num?)?.toDouble() ?? currentPrice;
 
           double newPrice = originalPrice;
           if (offer.isPercentage) {
-            newPrice = originalPrice - (originalPrice * (offer.discountValue / 100));
+            newPrice =
+                originalPrice - (originalPrice * (offer.discountValue / 100));
           } else {
             newPrice = originalPrice - offer.discountValue;
           }
@@ -553,11 +579,11 @@ class FirestoreService {
             'activeOfferId': offer.id,
             'price': newPrice,
           };
-          
+
           if (data['originalPrice'] == null) {
             updates['originalPrice'] = currentPrice;
           }
-          
+
           batch.update(productRef, updates);
         }
       }
@@ -585,7 +611,10 @@ class FirestoreService {
         final productSnap = await productRef.get();
         if (productSnap.exists && productSnap.data() != null) {
           final data = productSnap.data()!;
-          final double originalPrice = (data['originalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0;
+          final double originalPrice =
+              (data['originalPrice'] as num?)?.toDouble() ??
+              (data['price'] as num?)?.toDouble() ??
+              0.0;
           batch.update(productRef, {
             'activeOfferId': FieldValue.delete(),
             'price': originalPrice,
