@@ -85,28 +85,33 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: onPressed == null
-              ? AppColors.primary.withOpacity(0.5)
-              : AppColors.primary,
-          foregroundColor: AppColors.textOnPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth ? double.infinity : null;
+        return SizedBox(
+          width: width,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: onPressed == null
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: _ButtonContent(
+              label: label,
+              isLoading: isLoading,
+              icon: icon,
+              textStyle: AppTextStyles.button,
+            ),
           ),
-          elevation: 0,
-        ),
-        child: _ButtonContent(
-          label: label,
-          isLoading: isLoading,
-          icon: icon,
-          textStyle: AppTextStyles.button,
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -128,31 +133,36 @@ class _OutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: BorderSide(
-            color: onPressed == null
-                ? AppColors.primary.withOpacity(0.4)
-                : AppColors.primary,
-            width: 1.5,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth ? double.infinity : null;
+        return SizedBox(
+          width: width,
+          height: 52,
+          child: OutlinedButton(
+            onPressed: onPressed,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: BorderSide(
+                color: onPressed == null
+                    ? AppColors.primary.withValues(alpha: 0.4)
+                    : AppColors.primary,
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _ButtonContent(
+              label: label,
+              isLoading: isLoading,
+              icon: icon,
+              textStyle:
+                  AppTextStyles.button.copyWith(color: AppColors.primary),
+            ),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: _ButtonContent(
-          label: label,
-          isLoading: isLoading,
-          icon: icon,
-          textStyle:
-              AppTextStyles.button.copyWith(color: AppColors.primary),
-        ),
-      ),
+        );
+      },
     );
   }
 }

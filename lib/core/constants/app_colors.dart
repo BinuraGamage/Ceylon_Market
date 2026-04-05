@@ -18,6 +18,12 @@ class AppColors {
   static const Color textHint      = Color(0xFFBBBBBB);
   static const Color textOnPrimary = Color(0xFFFFFFFF); // White text on brown buttons
 
+  // ── Missing ones for compile errors ──────────────────────────────────────
+  static const Color onPrimary   = Color(0xFFFFFFFF); // White
+  static const Color outline     = Color(0xFFBBBBBB); // Gray
+  static const Color primaryContainer = Color(0xFFE8D8D0);
+  static const Color surfaceVariant   = Color(0xFFF6EBE5);
+
   // ── UI Elements ───────────────────────────────────────────────────────────
   static const Color divider      = Color(0xFFE8D8D0);
   static const Color cardShadow   = Color(0x1AC67C4E); // Subtle brown shadow

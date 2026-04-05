@@ -22,7 +22,8 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textOnPrimary,
-        minimumSize: const Size(double.infinity, 52),
+        // Avoid forcing infinite width globally; this breaks buttons in Row/Flex.
+        minimumSize: const Size(0, 52),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),

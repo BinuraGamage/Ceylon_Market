@@ -54,9 +54,9 @@ class ProductCard extends StatelessWidget {
                 height: width * 0.85,
                 width: width,
                 fit: BoxFit.cover,
-                placeholder: (_, __) =>
+                placeholder: (context, url) =>
                     const LoadingShimmer(height: double.infinity),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (context, url, error) => Container(
                   height: width * 0.85,
                   color: AppColors.background,
                   child: const Icon(
@@ -68,7 +68,7 @@ class ProductCard extends StatelessWidget {
             ),
             // ── Info ──────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -228,9 +228,9 @@ class ProductListTile extends StatelessWidget {
                 width: 72,
                 height: 72,
                 fit: BoxFit.cover,
-                placeholder: (_, __) =>
+                placeholder: (context, url) =>
                     const LoadingShimmer(height: 72, width: 72),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (context, url, error) => Container(
                   width: 72,
                   height: 72,
                   color: AppColors.background,
