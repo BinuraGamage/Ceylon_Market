@@ -13,14 +13,19 @@ void main() async {
   runApp(const ProviderScope(child: SelaMarketApp()));
 }
 
-class SelaMarketApp extends ConsumerWidget {
+class SelaMarketApp extends ConsumerStatefulWidget {
   const SelaMarketApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SelaMarketApp> createState() => _SelaMarketAppState();
+}
+
+class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
-      title: 'Sela Market',
+      title: 'Ceylon Marketplace',
       theme: AppTheme.lightTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

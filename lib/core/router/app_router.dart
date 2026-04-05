@@ -14,8 +14,11 @@ import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
 import '../../features/home/screens/category_browse_screen.dart';
 import '../../features/checkout/screens/cart_screen.dart';
+import '../../features/checkout/screens/checkout_screen.dart';
 import '../../features/checkout/screens/order_history_screen.dart';
 import '../../features/checkout/screens/seller_order_management_screen.dart';
+import '../../features/checkout/screens/order_confirmation_screen.dart';
+import '../../features/checkout/screens/order_detail_screen.dart';
 import '../../features/products/screens/product_form_screen.dart';
 import '../../features/products/screens/product_reviews_screen.dart';
 import '../../features/products/screens/seller_products_screen.dart';
@@ -27,8 +30,8 @@ import '../../features/shop/screens/store_room_screen.dart';
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
-    _ref.listen(authStateProvider, (_, __) => notifyListeners());
-    _ref.listen(currentUserProvider, (_, __) => notifyListeners());
+    _ref.listen(authStateProvider, (previous, next) => notifyListeners());
+    _ref.listen(currentUserProvider, (previous, next) => notifyListeners());
   }
   final Ref _ref;
 }
@@ -56,8 +59,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isOnAuthScreen ? null : '/login';
       }
 
-      // Logged in but user doc not loaded yet — wait
-      if (currentUser == null) return null;
+      // Logged in but app user profile not set yet — stay on login until explicit auth flow completes
+      if (currentUser == null) {
+        return isOnAuthScreen ? null : '/login';
+      }
 
       // Logged in and on an auth screen — redirect to their home
       if (isOnAuthScreen) {
@@ -216,7 +221,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'wishlist',
         path: '/wishlist',
-        builder: (context, state) => const WishlistScreen(),
+        builder: (context, state) => const Scaffold(body: Center(child: Text('Wishlist'))),
       ),
       GoRoute(
         name: 'cart',
@@ -227,6 +232,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'checkout',
         path: '/checkout',
         builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        name: 'order-confirmation',
+        path: '/order-confirmation/:id',
+        builder: (context, state) => OrderConfirmationScreen(
+          orderId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        name: 'order-detail',
+        path: '/order-detail/:id',
+        builder: (context, state) => OrderDetailScreen(
+          orderId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         name: 'order-history',
@@ -241,10 +260,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'profile',
         path: '/profile',
-        builder: (context, state) => const PlaceholderScreen(
-          title: 'Profile',
-          message: 'Profile screen is coming soon.',
-        ),
+        builder: (context, state) => const Scaffold(body: Center(child: Text('Profile screen is coming soon.'))),
       ),
     ],
   );

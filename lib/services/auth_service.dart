@@ -68,6 +68,13 @@ class AuthService {
     }
   }
 
+  // ── Get any user by UID from Firestore ────────────────────────────────────
+  Future<UserModel> getUserById(String uid) async {
+    final doc = await _firestore.doc(FirestorePaths.userDoc(uid)).get();
+    if (!doc.exists) throw Exception('User record not found');
+    return UserModel.fromMap(doc.data()!, uid);
+  }
+
   // ── Google Sign-In ────────────────────────────────────────────────────────
   Future<UserModel> signInWithGoogle({String role = 'customer'}) async {
     try {
