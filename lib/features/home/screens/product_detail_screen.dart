@@ -292,35 +292,36 @@ class _ProductContent extends ConsumerWidget {
                 if (product.isAREnabled && product.arModelUrl != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 16, bottom: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.2),
-                        ),
+                    child: GestureDetector(
+                      onTap: () => context.goNamed(
+                        'ar-preview',
+                        pathParameters: {'productId': product.productId},
                       ),
-                      // TODO: M7 — Replace with ARPreviewButton widget:
-                      // ARPreviewButton(
-                      //   productId: product.productId,
-                      //   modelUrl: product.arModelUrl!,
-                      // )
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.view_in_ar_rounded,
-                            color: AppColors.primary,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.2),
                           ),
-                          SizedBox(width: 10),
-                          Text(
-                            'View in your space (AR)',
-                            style: TextStyle(
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.view_in_ar_rounded,
                               color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 10),
+                            Text(
+                              'View in your space (AR)',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -688,10 +689,12 @@ class ProductDetailBottomBar extends ConsumerWidget {
               onPressed: product.isAvailable
                   ? () async {
                       try {
-                        await ref.read(cartNotifierProvider.notifier).addItem(
-                          productId: product.productId,
-                          shopId: product.shopId,
-                        );
+                        await ref
+                            .read(cartNotifierProvider.notifier)
+                            .addItem(
+                              productId: product.productId,
+                              shopId: product.shopId,
+                            );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
