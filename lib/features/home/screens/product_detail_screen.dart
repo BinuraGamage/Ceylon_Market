@@ -62,20 +62,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: BackButton(
-          color: AppColors.textPrimary,
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.goNamed('customer-home');
-            }
-          },
-        ),
-      ),
       body: productAsync.when(
         loading: () => const _DetailSkeleton(),
         error: (_, __) => ErrorBanner(
