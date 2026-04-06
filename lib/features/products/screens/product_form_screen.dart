@@ -352,6 +352,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               label: 'Tags (comma separated)',
               hint: 'traditional, handmade, wooden',
             ),
+            const SizedBox(height: 6),
+            const Text(
+              'Gemini also auto-adds tags from selected product images.',
+              style: AppTextStyles.caption,
+            ),
             const SizedBox(height: 12),
             AppTextField(
               controller: _materialsController,

@@ -184,7 +184,7 @@ class ImageSearchState {
 
 /// AsyncNotifier managing the full image search flow:
 /// 1. User picks an image
-/// 2. We send it to Google Vision API → get labels/tags
+/// 2. We send it to Gemini multimodal API → get labels/tags
 /// 3. We search Firestore products by those tags
 /// 4. We return matching products
 class ImageSearchNotifier extends AsyncNotifier<ImageSearchState> {
@@ -196,18 +196,22 @@ class ImageSearchNotifier extends AsyncNotifier<ImageSearchState> {
   Future<void> searchWithImage(File imageFile) async {
     state = const AsyncValue.loading();
     try {
-      // Step 1 — get tags from the image via Vision API
+      // Step 1 — get tags from the image via Gemini multimodal API
       final imageSearchService = ref.read(imageSearchServiceProvider);
       final tags = await imageSearchService.getLabelsFromImage(imageFile);
 
       if (tags.isEmpty) {
+        final fallbackResults = await ref
+            .read(firestoreServiceProvider)
+            .searchProducts(query: '', limit: 20);
+
         state = AsyncValue.data(
           ImageSearchState(
             selectedImage: imageFile,
             suggestedTags: [],
-            results: [],
+            results: fallbackResults,
             error:
-                'No recognisable features found in image. Try another photo.',
+                'Image analysis unavailable. Showing popular products instead.',
           ),
         );
         return;
@@ -266,7 +270,7 @@ final sellerProductsProvider = StreamProvider<List<ProductModel>>((ref) {
               .watchSellerProducts(shop.shopId);
         },
         loading: () => Stream.value(<ProductModel>[]),
-        error: (_, __) => Stream.value(<ProductModel>[]),
+        error: (error, stackTrace) => Stream.value(<ProductModel>[]),
       );
 });
 
@@ -298,6 +302,51 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
   @override
   SellerProductFormState build() => const SellerProductFormState();
 
+  List<String> _normalizeTags(Iterable<String> tags) {
+    final normalized = <String>{};
+    for (final raw in tags) {
+      final value = raw.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      if (value.length < 2) continue;
+      normalized.add(value);
+    }
+    return normalized.toList();
+  }
+
+  Future<List<String>> _extractGeminiTagsFromImages(List<File> imageFiles) async {
+    if (imageFiles.isEmpty) return const [];
+
+    final imageSearchService = ref.read(imageSearchServiceProvider);
+    final extracted = <String>{};
+
+    // Limit analysis count to keep submit latency and API cost predictable.
+    for (final file in imageFiles.take(4)) {
+      try {
+        final labels = await imageSearchService.getGeminiLabelsFromImage(file);
+        extracted.addAll(_normalizeTags(labels));
+      } catch (e) {
+        debugPrint('[SellerProductFormNotifier] Gemini tag extraction error: $e');
+      }
+    }
+
+    return extracted.toList();
+  }
+
+  Future<List<String>> _buildFinalTags({
+    required List<String> manualTags,
+    required List<File> imageFiles,
+    required String category,
+  }) async {
+    final combined = <String>{..._normalizeTags(manualTags)};
+    combined.addAll(await _extractGeminiTagsFromImages(imageFiles));
+
+    final normalizedCategory = ProductCategory.normalizeCategoryKey(category);
+    if (normalizedCategory.isNotEmpty) {
+      combined.add(normalizedCategory);
+    }
+
+    return combined.take(25).toList();
+  }
+
   Future<void> createProduct({
     required String name,
     required String description,
@@ -326,6 +375,12 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
         );
       }
 
+      final finalTags = await _buildFinalTags(
+        manualTags: tags,
+        imageFiles: imageFiles,
+        category: category,
+      );
+
       final draft = ProductModel(
         productId: '',
         shopId: shop.shopId,
@@ -334,7 +389,7 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
         price: price,
         category: category,
         images: const [],
-        tags: tags,
+        tags: finalTags,
         materials: materials.isEmpty ? null : materials,
         sizes: sizes.isEmpty ? null : sizes,
         colors: colors.isEmpty ? null : colors,
@@ -399,6 +454,12 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
       isSuccess: false,
     );
     try {
+      final finalTags = await _buildFinalTags(
+        manualTags: tags,
+        imageFiles: newImageFiles,
+        category: category,
+      );
+
       var finalImages = List<String>.from(existing.images);
       if (newImageFiles.isNotEmpty) {
         final uploaded = await ref
@@ -421,7 +482,7 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
               'price': price,
               'category': category,
               'stock': stock,
-              'tags': tags,
+              'tags': finalTags,
               'materials': materials,
               'sizes': sizes,
               'colors': colors,

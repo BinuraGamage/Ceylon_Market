@@ -8,13 +8,13 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 ///
 /// Two input modes:
 ///   1. [getLabelsFromFile] — user picked from camera/gallery (local File).
-///      Compresses → base64 → sends to Google Vision API.
+///      Compresses → base64 → sends to Gemini multimodal API.
 ///   2. [getLabelsFromCloudinaryUrl] — you have an existing Cloudinary URL
 ///      (e.g. from a product the user is "searching by"). Fetches the bytes
-///      via Cloudinary's optimisation transform, then sends to Vision.
+///      via Cloudinary's optimisation transform, then sends to Gemini.
 ///
-/// Both return List<String> of lowercase tags that match Firestore
-/// product.tags[] and product.category fields.
+/// Both return lowercase tag strings that match Firestore
+/// product tag lists and product.category fields.
 ///
 /// M3 integration note:
 ///   M3's cloudinary_service.dart stores URLs in product.images[].
@@ -24,11 +24,13 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 ///     getLabelsFromFile(file)
 ///
 /// Setup:
-///   flutter run --dart-define=VISION_API_KEY=your_key
+///   flutter run --dart-define=GEMINI_API_KEY=your_key
 class ImageSearchService {
-  static const String _apiKey = String.fromEnvironment('VISION_API_KEY');
-  static const String _visionEndpoint =
-      'https://vision.googleapis.com/v1/images:annotate';
+  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+  static const String _geminiModel = String.fromEnvironment(
+    'GEMINI_MODEL',
+    defaultValue: 'gemini-3-flash-preview',
+  );
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -37,7 +39,9 @@ class ImageSearchService {
     try {
       final bytes = await _compressFile(imageFile);
       if (bytes == null) return _fallbackFromFilename(imageFile.path);
-      return _sendToVision(bytes);
+      final labels = await _sendToGemini(bytes);
+      if (labels.isNotEmpty) return labels;
+      return _fallbackFromFilename(imageFile.path);
     } catch (e) {
       debugPrint('[ImageSearchService] getLabelsFromFile error: $e');
       return _fallbackFromFilename(imageFile.path);
@@ -48,27 +52,43 @@ class ImageSearchService {
   Future<List<String>> getLabelsFromImage(File imageFile) =>
       getLabelsFromFile(imageFile);
 
+  /// Gemini-only extraction for flows that must avoid synthetic fallback tags.
+  ///
+  /// Returns an empty list when Gemini labeling is unavailable.
+  Future<List<String>> getGeminiLabelsFromImage(File imageFile) async {
+    try {
+      final bytes = await _compressFile(imageFile);
+      if (bytes == null) return [];
+      return _sendToGemini(bytes);
+    } catch (e) {
+      debugPrint('[ImageSearchService] getGeminiLabelsFromImage error: $e');
+      return [];
+    }
+  }
+
   /// Search using an existing Cloudinary product image URL.
-  /// Requests a compressed variant from Cloudinary before sending to Vision.
+  /// Requests a compressed variant from Cloudinary before sending to Gemini.
   Future<List<String>> getLabelsFromCloudinaryUrl(String url) async {
     try {
       final optimisedUrl = _buildCloudinaryOptimisedUrl(url);
       final bytes = await _fetchUrlBytes(optimisedUrl);
       if (bytes == null || bytes.isEmpty) {
         debugPrint('[ImageSearchService] Could not fetch: $url');
-        return [];
+        return _fallbackFromFilename(url);
       }
-      return _sendToVision(bytes);
+      final labels = await _sendToGemini(bytes);
+      if (labels.isNotEmpty) return labels;
+      return _fallbackFromFilename(url);
     } catch (e) {
       debugPrint('[ImageSearchService] getLabelsFromCloudinaryUrl error: $e');
-      return [];
+      return _fallbackFromFilename(url);
     }
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
   /// Injects Cloudinary URL transformation params to resize + compress
-  /// before sending to Vision API (keeps payload well under 4 MB).
+  /// before sending to Gemini API (keeps payload well under 4 MB).
   /// Cloudinary URL structure: /image/upload/{transforms}/{public_id}
   String _buildCloudinaryOptimisedUrl(String url) {
     try {
@@ -107,7 +127,7 @@ class ImageSearchService {
     }
   }
 
-  /// Compress a local file before encoding for Vision.
+  /// Compress a local file before encoding for Gemini.
   Future<List<int>?> _compressFile(File file) {
     return FlutterImageCompress.compressWithFile(
       file.path,
@@ -117,30 +137,46 @@ class ImageSearchService {
     );
   }
 
-  /// Core Vision API call. Returns matched Firestore tags.
-  Future<List<String>> _sendToVision(List<int> imageBytes) async {
-    if (_apiKey.isEmpty) {
-      debugPrint('[ImageSearchService] VISION_API_KEY not set — '
-          'build with --dart-define=VISION_API_KEY=xxx');
+  /// Core Gemini multimodal API call. Returns matched Firestore tags.
+  Future<List<String>> _sendToGemini(List<int> imageBytes) async {
+    if (_geminiApiKey.isEmpty) {
+      debugPrint('[ImageSearchService] GEMINI_API_KEY not set — '
+          'build with --dart-define=GEMINI_API_KEY=xxx');
       return [];
     }
 
+    const prompt =
+        'You are generating product search tags for an e-commerce app. '
+        'Analyze this image and return ONLY a JSON array of 5 to 12 short, '
+        'lowercase tags. Include product type, material, and style. '
+        'No prose, no markdown, no code fence.';
+
     final body = jsonEncode({
-      'requests': [
+      'contents': [
         {
-          'image': {'content': base64Encode(imageBytes)},
-          'features': [
-            {'type': 'LABEL_DETECTION', 'maxResults': 15},
-            {'type': 'OBJECT_LOCALIZATION', 'maxResults': 10},
+          'parts': [
+            {'text': prompt},
+            {
+              'inline_data': {
+                'mime_type': 'image/jpeg',
+                'data': base64Encode(imageBytes),
+              },
+            },
           ],
-        }
-      ]
+        },
+      ],
+      'generationConfig': {
+        'temperature': 0.2,
+        'maxOutputTokens': 200,
+      },
     });
 
     final client = HttpClient();
     try {
-      final request =
-          await client.postUrl(Uri.parse('$_visionEndpoint?key=$_apiKey'));
+      final endpoint =
+          'https://generativelanguage.googleapis.com/v1beta/models/'
+          '$_geminiModel:generateContent?key=$_geminiApiKey';
+      final request = await client.postUrl(Uri.parse(endpoint));
       request.headers.contentType = ContentType.json;
       request.write(body);
       final response = await request.close();
@@ -148,38 +184,101 @@ class ImageSearchService {
 
       if (response.statusCode != 200) {
         debugPrint(
-            '[ImageSearchService] Vision ${response.statusCode}: $responseBody');
+          '[ImageSearchService] Gemini ${response.statusCode}: $responseBody',
+        );
         return [];
       }
 
       final json = jsonDecode(responseBody) as Map<String, dynamic>;
-      final responses = json['responses'] as List?;
-      if (responses == null || responses.isEmpty) return [];
+      final candidates = json['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) return [];
 
-      final first = responses.first as Map<String, dynamic>;
-      final rawLabels = <String>[];
+      final first = candidates.first as Map<String, dynamic>;
+      final content = first['content'] as Map<String, dynamic>?;
+      final parts = content?['parts'] as List?;
+      if (parts == null || parts.isEmpty) return [];
 
-      for (final l in first['labelAnnotations'] as List? ?? []) {
-        final d = (l['description'] as String?)?.toLowerCase();
-        if (d != null) rawLabels.add(d);
-      }
-      for (final o in first['localizedObjectAnnotations'] as List? ?? []) {
-        final n = (o['name'] as String?)?.toLowerCase();
-        if (n != null) rawLabels.add(n);
-      }
+      final rawText = parts
+          .map((part) => (part as Map<String, dynamic>)['text'] as String? ?? '')
+          .join(' ')
+          .trim();
 
+      if (rawText.isEmpty) return [];
+
+      final rawLabels = _extractLabelsFromGeminiText(rawText);
       return _mapLabelsToProductTags(rawLabels);
+    } catch (e) {
+      debugPrint('[ImageSearchService] _sendToGemini error: $e');
+      return [];
     } finally {
       client.close();
     }
   }
 
-  /// Maps Vision labels → Firestore tag/category strings.
+  /// Parses Gemini text output into a normalized list of tags.
+  List<String> _extractLabelsFromGeminiText(String rawText) {
+    final normalized = rawText
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+
+    final labels = <String>{};
+
+    void addLabel(String value) {
+      final clean = value
+          .toLowerCase()
+          .replaceAll(RegExp(r'^[\s\-\*\d\.\)]+'), '')
+          .replaceAll(RegExp(r'["\[\]]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      if (clean.length < 2) return;
+      labels.add(clean);
+    }
+
+    try {
+      final decoded = jsonDecode(normalized);
+      if (decoded is List) {
+        for (final item in decoded) {
+          addLabel(item.toString());
+        }
+      }
+    } catch (_) {
+      // Ignore and continue with best-effort parsing.
+    }
+
+    if (labels.isEmpty) {
+      final start = normalized.indexOf('[');
+      final end = normalized.lastIndexOf(']');
+      if (start != -1 && end > start) {
+        final jsonSlice = normalized.substring(start, end + 1);
+        try {
+          final decoded = jsonDecode(jsonSlice);
+          if (decoded is List) {
+            for (final item in decoded) {
+              addLabel(item.toString());
+            }
+          }
+        } catch (_) {
+          // Ignore and continue with split fallback.
+        }
+      }
+    }
+
+    if (labels.isEmpty) {
+      for (final part in normalized.split(RegExp(r'[,\n;|]'))) {
+        addLabel(part);
+      }
+    }
+
+    return labels.take(12).toList();
+  }
+
+  /// Maps model labels → Firestore tag/category strings.
   ///
   /// Keys must match ProductCategory enum values in product_model.dart
   /// and the tags that M4 writes when uploading products.
   /// Aligned with M3's Cloudinary folder naming conventions.
-  List<String> _mapLabelsToProductTags(List<String> visionLabels) {
+  List<String> _mapLabelsToProductTags(List<String> modelLabels) {
     const tagMap = <String, List<String>>{
       'crafts':    ['craft', 'handmade', 'artisan', 'wicker', 'cane', 'basket', 'weave', 'mat'],
       'clothing':  ['clothing', 'dress', 'saree', 'garment', 'fashion', 'batik', 'textile', 'fabric'],
@@ -198,23 +297,48 @@ class ImageSearchService {
     };
 
     final matched = <String>{};
-    for (final label in visionLabels) {
+    for (final label in modelLabels) {
       for (final entry in tagMap.entries) {
         if (entry.value.any((kw) => label.contains(kw))) {
           matched.add(entry.key);
         }
       }
     }
-    // Fallback: raw Vision labels may directly match seller-added tags
-    matched.addAll(visionLabels.take(5));
+    // Fallback: raw model labels may directly match seller-added tags.
+    matched.addAll(modelLabels.take(5));
     return matched.toList();
   }
 
-  /// Fallback when Vision is unavailable — extract hints from filename.
+  /// Fallback when AI labeling is unavailable — extract hints from filename.
   List<String> _fallbackFromFilename(String path) {
-    final filename = path.split('/').last.toLowerCase();
-    final words = filename.split(RegExp(r'[_\-\s\.]'));
-    return _mapLabelsToProductTags(words);
+    final filename = path.split(RegExp(r'[\\/]')).last.toLowerCase();
+    final ignored = {
+      'img',
+      'image',
+      'photo',
+      'pic',
+      'camera',
+      'screenshot',
+      'jpg',
+      'jpeg',
+      'png',
+      'heic',
+      'webp',
+    };
+
+    final words = filename
+        .split(RegExp(r'[_\-\s\.]'))
+        .map((w) => w.trim())
+        .where((w) => w.length >= 3)
+        .where((w) => RegExp(r'[a-z]').hasMatch(w))
+        .where((w) => !ignored.contains(w))
+        .toList();
+
+    final mapped = _mapLabelsToProductTags(words);
+    if (mapped.isNotEmpty) return mapped;
+
+    // Last-resort fallback: broad categories so users still get results.
+    return const ['crafts', 'clothing', 'furniture'];
   }
 }
 
