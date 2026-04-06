@@ -6,7 +6,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/firestore_paths.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../shared/widgets/current_user_profile_button.dart';
 
 class AdminDashboardStub extends ConsumerStatefulWidget {
   const AdminDashboardStub({super.key});

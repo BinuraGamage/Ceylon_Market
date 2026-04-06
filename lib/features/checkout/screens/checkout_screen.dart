@@ -43,7 +43,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   void _initializeStripe() {
     // Initialize Stripe with test publishable key
-    Stripe.publishableKey = 'pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ';
+    Stripe.publishableKey =
+        'pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ';
     Stripe.merchantIdentifier = 'merchant.ceylonmarket';
   }
 
@@ -72,9 +73,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ),
       body: cartWithProducts.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => ErrorBanner(
-          message: 'Failed to load cart: ${error.toString()}',
-        ),
+        error: (error, stack) =>
+            ErrorBanner(message: 'Failed to load cart: ${error.toString()}'),
         data: (items) {
           if (items.isEmpty) {
             return const _EmptyCartView();
@@ -126,13 +126,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onPressed: _isProcessingPayment
                       ? null
                       : () => _placeOrder(
-                            context,
-                            ref,
-                            orderNotifier,
-                            items,
-                            finalTotal,
-                            currentUser?.uid ?? '',
-                          ),
+                          context,
+                          ref,
+                          orderNotifier,
+                          items,
+                          finalTotal,
+                          currentUser?.uid ?? '',
+                        ),
                   isLoading: _isProcessingPayment,
                 ),
               ],
@@ -154,13 +154,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _appliedPromoCode = code;
         _discountAmount = ref.read(cartTotalProvider) * 0.1; // 10% discount
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Promo code applied!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Promo code applied!')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid promo code')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid promo code')));
     }
   }
 
@@ -243,9 +243,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       await _processStripePayment(context, finalTotal, order, orderNotifier);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to process payment: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to process payment: $e')));
     } finally {
       if (mounted) {
         setState(() {
@@ -264,7 +264,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       // Create payment intent via Cloud Function
       final paymentIntent = await _createPaymentIntent(amount);
-      
+
       // Initialize Payment Sheet
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
@@ -277,10 +277,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       await Stripe.instance.presentPaymentSheet();
 
       // Payment successful - create order
-      final orderId = await orderNotifier.createOrder(order.copyWith(
-        paymentStatus: 'paid',
-        paymentRef: paymentIntent['id'], // 'id' from stripe intent usually (if backend returns it) or just client_secret
-      ));
+      final orderId = await orderNotifier.createOrder(
+        order.copyWith(
+          paymentStatus: 'paid',
+          paymentRef:
+              paymentIntent['id'], // 'id' from stripe intent usually (if backend returns it) or just client_secret
+        ),
+      );
 
       // Clear cart after successful order
       await ref.read(cartNotifierProvider.notifier).clearCart();
@@ -295,9 +298,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Payment error: $e')));
     }
   }
 
@@ -306,10 +309,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final functions = FirebaseFunctions.instance;
 
       // Call the createPaymentIntent Cloud Function
-      final result = await functions
-          .httpsCallable('createPaymentIntent')
-          .call({
-        'amount': (amount * 100).toInt(), // Convert to cents (Stripe expects smallest currency unit)
+      final result = await functions.httpsCallable('createPaymentIntent').call({
+        'amount': (amount * 100)
+            .toInt(), // Convert to cents (Stripe expects smallest currency unit)
         'currency': 'lkr',
         'metadata': {
           'customer_id': ref.read(currentUserProvider)?.uid ?? '',
@@ -339,10 +341,7 @@ class _EmptyCartView extends StatelessWidget {
             color: AppColors.outline,
           ),
           const SizedBox(height: 16),
-          Text(
-            'Your cart is empty',
-            style: AppTextStyles.heading2,
-          ),
+          Text('Your cart is empty', style: AppTextStyles.heading2),
           const SizedBox(height: 24),
           AppButton(
             label: 'Continue Shopping',
@@ -375,10 +374,7 @@ class _PromoCodeSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Promo Code',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Promo Code', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             if (appliedCode != null)
               Container(
@@ -389,22 +385,13 @@ class _PromoCodeSection extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: AppColors.primary,
-                    ),
+                    Icon(Icons.check_circle, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    Text(
-                      'Applied: $appliedCode',
-                      style: AppTextStyles.body,
-                    ),
+                    Text('Applied: $appliedCode', style: AppTextStyles.body),
                     const Spacer(),
                     IconButton(
                       onPressed: onRemove,
-                      icon: Icon(
-                        Icons.close,
-                        color: AppColors.error,
-                      ),
+                      icon: Icon(Icons.close, color: AppColors.error),
                     ),
                   ],
                 ),
@@ -420,10 +407,7 @@ class _PromoCodeSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  AppButton(
-                    label: 'Apply',
-                    onPressed: onApply,
-                  ),
+                  AppButton(label: 'Apply', onPressed: onApply),
                 ],
               ),
           ],
@@ -454,10 +438,7 @@ class _ShippingAddressSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Shipping Address',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Shipping Address', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             AppTextField(
               controller: line1Controller,
@@ -527,10 +508,7 @@ class _PaymentMethodSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Payment Method',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Payment Method', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
@@ -540,19 +518,13 @@ class _PaymentMethodSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.credit_card,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.credit_card, color: AppColors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Stripe Payment',
-                          style: AppTextStyles.bodyLarge,
-                        ),
+                        Text('Stripe Payment', style: AppTextStyles.bodyLarge),
                         Text(
                           'Secure payment processing in LKR',
                           style: AppTextStyles.bodySmall.copyWith(
@@ -563,7 +535,10 @@ class _PaymentMethodSection extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),

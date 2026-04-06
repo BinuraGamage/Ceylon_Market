@@ -142,10 +142,9 @@ class _FullScreenVideoScreen extends StatefulWidget {
   final Duration startPosition;
 
   const _FullScreenVideoScreen({
-    Key? key,
     required this.videoUrl,
     required this.startPosition,
-  }) : super(key: key);
+  });
 
   @override
   State<_FullScreenVideoScreen> createState() => _FullScreenVideoScreenState();

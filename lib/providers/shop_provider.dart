@@ -44,13 +44,14 @@ final orderSummaryProvider = StreamProvider<Map<String, int>>((ref) {
   final shopAsync = ref.watch(myShopProvider);
   return shopAsync.when(
     data: (shop) {
-      if (shop == null)
+      if (shop == null) {
         return Stream.value({
           'all': 0,
           'pending': 0,
           'shipped': 0,
           'cancelled': 0,
         });
+      }
       return ref.read(shopServiceProvider).watchOrderSummary(shop.shopId);
     },
     loading: () =>
