@@ -22,6 +22,7 @@ import '../../features/checkout/screens/order_detail_screen.dart';
 import '../../features/products/screens/product_form_screen.dart';
 import '../../features/products/screens/product_reviews_screen.dart';
 import '../../features/products/screens/seller_products_screen.dart';
+import '../../features/engagement/screens/ar_preview_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/shop/screens/seller_register_screen.dart';
 import '../../features/shop/screens/seller_dashboard_screen.dart';
@@ -169,9 +170,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'custom-request-detail',
         path: '/custom-request/:id',
-        builder: (context, state) => CustomRequestDetailScreen(
-          requestId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            CustomRequestDetailScreen(requestId: state.pathParameters['id']!),
       ),
 
       // ── Admin ────────────────────────────────────────────────────────────
@@ -198,6 +198,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ProductReviewsScreen(productId: state.pathParameters['id']!),
       ),
 
+      GoRoute(
+        name: 'ar-preview',
+        path: '/ar/:productId',
+        builder: (context, state) =>
+            ArPreviewScreen(productId: state.pathParameters['productId']!),
+      ),
+
       // ── Search (M2) ───────────────────────────────────────────────────────
       GoRoute(
         name: 'search',
@@ -221,7 +228,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'wishlist',
         path: '/wishlist',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Wishlist'))),
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: Text('Wishlist'))),
       ),
       GoRoute(
         name: 'cart',
@@ -236,16 +244,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'order-confirmation',
         path: '/order-confirmation/:id',
-        builder: (context, state) => OrderConfirmationScreen(
-          orderId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            OrderConfirmationScreen(orderId: state.pathParameters['id']!),
       ),
       GoRoute(
         name: 'order-detail',
         path: '/order-detail/:id',
-        builder: (context, state) => OrderDetailScreen(
-          orderId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            OrderDetailScreen(orderId: state.pathParameters['id']!),
       ),
       GoRoute(
         name: 'order-history',
@@ -260,7 +266,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'profile',
         path: '/profile',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Profile screen is coming soon.'))),
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('Profile screen is coming soon.')),
+        ),
       ),
     ],
   );
