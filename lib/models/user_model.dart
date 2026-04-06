@@ -12,6 +12,7 @@ class UserModel extends Equatable {
   final String? fcmToken;
   final List<String> followedShops;
   final List<String> wishlist;
+  final Map<String, String> shippingAddress;
 
   const UserModel({
     required this.uid,
@@ -24,6 +25,7 @@ class UserModel extends Equatable {
     this.fcmToken,
     this.followedShops = const [],
     this.wishlist = const [],
+    this.shippingAddress = const {},
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -38,6 +40,7 @@ class UserModel extends Equatable {
       fcmToken: map['fcmToken'] as String?,
       followedShops: List<String>.from(map['followedShops'] ?? []),
       wishlist: List<String>.from(map['wishlist'] ?? []),
+      shippingAddress: Map<String, String>.from(map['shippingAddress'] ?? {}),
     );
   }
 
@@ -51,6 +54,7 @@ class UserModel extends Equatable {
     'fcmToken': fcmToken,
     'followedShops': followedShops,
     'wishlist': wishlist,
+    'shippingAddress': shippingAddress,
   };
 
   @override
@@ -67,6 +71,7 @@ class UserModel extends Equatable {
     String? fcmToken,
     List<String>? followedShops,
     List<String>? wishlist,
+    Map<String, String>? shippingAddress,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -79,6 +84,7 @@ class UserModel extends Equatable {
       fcmToken: fcmToken ?? this.fcmToken,
       followedShops: followedShops ?? this.followedShops,
       wishlist: wishlist ?? this.wishlist,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
     );
   }
 }

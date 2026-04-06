@@ -209,9 +209,58 @@ class ProductCategory {
     other,
   ];
 
+  /// Normalizes category text from Firestore/UI into a canonical key.
+  /// This keeps category browse working even when old data uses labels
+  /// like "Clay Products" instead of canonical keys like "clay".
+  static String normalizeCategoryKey(String raw) {
+    final value = raw
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_-]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ');
+
+    switch (value) {
+      case 'craft':
+      case 'crafts':
+        return crafts;
+      case 'clothes':
+      case 'clothing':
+      case 'apparel':
+        return clothing;
+      case 'furniture':
+        return furniture;
+      case 'food':
+      case 'foods':
+        return food;
+      case 'statue':
+      case 'statues':
+        return statues;
+      case 'clay':
+      case 'clay product':
+      case 'clay products':
+        return clay;
+      case 'bottled':
+      case 'bottled product':
+      case 'bottled products':
+        return bottled;
+      case 'metal':
+      case 'metal craft':
+      case 'metal crafts':
+        return metal;
+      case 'painting':
+      case 'paintings':
+        return paintings;
+      case 'other':
+        return other;
+      default:
+        if (all.contains(value)) return value;
+        return value;
+    }
+  }
+
   /// Human-readable label for UI display.
   static String label(String category) {
-    switch (category) {
+    switch (normalizeCategoryKey(category)) {
       case crafts:
         return 'Crafts';
       case clothing:

@@ -13,6 +13,8 @@ import '../../features/home/screens/product_detail_screen.dart';
 import '../../features/home/screens/search_screen.dart';
 import '../../features/home/screens/image_search_screen.dart';
 import '../../features/home/screens/category_browse_screen.dart';
+import '../../features/home/screens/wishlist_screen.dart';
+import '../../features/home/screens/customer_profile_screen.dart';
 import '../../features/checkout/screens/cart_screen.dart';
 import '../../features/checkout/screens/checkout_screen.dart';
 import '../../features/checkout/screens/order_history_screen.dart';
@@ -221,7 +223,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'wishlist',
         path: '/wishlist',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Wishlist'))),
+        builder: (context, state) => const WishlistScreen(),
       ),
       GoRoute(
         name: 'cart',
@@ -260,7 +262,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         name: 'profile',
         path: '/profile',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Profile screen is coming soon.'))),
+        builder: (context, state) => const CustomerProfileScreen(),
       ),
     ],
   );

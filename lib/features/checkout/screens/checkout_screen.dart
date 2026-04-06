@@ -8,13 +8,16 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/order_model.dart';
+import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../providers/order_provider.dart';
+import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../widgets/order_summary_card.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -51,6 +54,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _appliedPromoCode;
   double _discountAmount = 0.0;
   bool _isProcessingPayment = false;
+  bool _didPrefillAddressFromProfile = false;
 
   @override
   void initState() {
@@ -62,6 +66,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     // Publishable key can safely be used on mobile clients.
     Stripe.publishableKey = _stripePublishableKey;
     Stripe.merchantIdentifier = 'merchant.ceylonmarket';
+  }
+
+  void _prefillAddressFromProfile(UserModel? currentUser) {
+    if (_didPrefillAddressFromProfile || currentUser == null) return;
+
+    final address = currentUser.shippingAddress;
+    _line1Controller.text = address['line1'] ?? '';
+    _cityController.text = address['city'] ?? '';
+    _districtController.text = address['district'] ?? '';
+    _postalCodeController.text = address['postalCode'] ?? '';
+    _didPrefillAddressFromProfile = true;
   }
 
   @override
@@ -80,6 +95,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final cartTotal = ref.watch(cartTotalProvider);
     final currentUser = ref.watch(currentUserProvider);
     final orderNotifier = ref.watch(orderNotifierProvider.notifier);
+
+    _prefillAddressFromProfile(currentUser);
 
     return Scaffold(
       appBar: AppBar(
@@ -148,7 +165,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             orderNotifier,
                             items,
                             finalTotal,
-                            currentUser?.uid ?? '',
+                            currentUser,
                           ),
                   isLoading: _isProcessingPayment,
                 ),
@@ -157,6 +174,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 3),
     );
   }
 
@@ -195,8 +213,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     OrderNotifier orderNotifier,
     List<Map<String, dynamic>> items,
     double finalTotal,
-    String customerId,
+    UserModel? currentUser,
   ) async {
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to place an order.')),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     // Validate stock availability
@@ -234,16 +259,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       // Create shipping address
       final shippingAddress = {
-        'line1': _line1Controller.text,
-        'city': _cityController.text,
-        'district': _districtController.text,
-        'postalCode': _postalCodeController.text,
+        'line1': _line1Controller.text.trim(),
+        'city': _cityController.text.trim(),
+        'district': _districtController.text.trim(),
+        'postalCode': _postalCodeController.text.trim(),
       };
+
+      // Keep customer's default address in profile in sync with checkout input.
+      try {
+        await FirestoreService.instance.updateUserProfile(
+          uid: currentUser.uid,
+          shippingAddress: shippingAddress,
+        );
+        ref.read(currentUserProvider.notifier).state = currentUser.copyWith(
+          shippingAddress: Map<String, String>.from(shippingAddress),
+        );
+      } catch (e) {
+        debugPrint('[CheckoutScreen] updateUserProfile error: $e');
+      }
 
       // Create order
       final order = OrderModel(
         orderId: '', // Will be set by Firestore
-        customerId: customerId,
+        customerId: currentUser.uid,
         shopId: items.first['product'].shopId, // Assuming single shop for now
         items: orderItems,
         totalLKR: finalTotal,

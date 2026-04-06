@@ -62,14 +62,25 @@ class FirestoreService {
     String category, {
     int limit = 20,
   }) {
+    final normalizedCategory = ProductCategory.normalizeCategoryKey(category);
+
     return _db
         .collection(FirestorePaths.products)
-        // .where('isActive', isEqualTo: true)
-        .where('category', isEqualTo: category)
+        // Keep this query security-rule friendly for customer reads.
+        .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snap) {
           final list = snap.docs
               .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+              .where((product) {
+                final productCategory =
+                    ProductCategory.normalizeCategoryKey(product.category);
+
+                if (normalizedCategory.isEmpty || normalizedCategory == 'all') {
+                  return true;
+                }
+                return productCategory == normalizedCategory;
+              })
               .toList();
           // Sort client-side to avoid Firebase composite index requirements
           list.sort((a, b) => b.avgRating.compareTo(a.avgRating));
@@ -105,39 +116,74 @@ class FirestoreService {
     int limit = 20,
   }) async {
     try {
-      // Base query — active products only
-      Query<Map<String, dynamic>> ref = _db.collection(FirestorePaths.products);
-      // .where('isActive', isEqualTo: true);
-
-      // Category filter
-      if (category != null && category.isNotEmpty) {
-        ref = ref.where('category', isEqualTo: category);
-      }
-
-      // Price range filter
-      if (minPrice != null) {
-        ref = ref.where('price', isGreaterThanOrEqualTo: minPrice);
-      }
-      if (maxPrice != null) {
-        ref = ref.where('price', isLessThanOrEqualTo: maxPrice);
-      }
-
-      // Prefix match on name — Firestore range query trick
-      if (query.isNotEmpty) {
-        final end =
-            query.substring(0, query.length - 1) +
-            String.fromCharCode(query.codeUnitAt(query.length - 1) + 1);
-        ref = ref
-            .where('name', isGreaterThanOrEqualTo: query)
-            .where('name', isLessThan: end);
-      }
-
-      ref = ref.limit(limit);
-
-      final snap = await ref.get();
-      return snap.docs
-          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+      final normalizedQuery = query.trim().toLowerCase();
+      final terms = normalizedQuery
+          .split(RegExp(r'\s+'))
+          .where((term) => term.isNotEmpty)
           .toList();
+
+      // Keep server query simple to avoid composite-index failures, then
+      // perform relevance filtering client-side for robust matching.
+      final snap = await _db
+          .collection(FirestorePaths.products)
+          .limit(300)
+          .get();
+
+      final candidates = snap.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .where((product) {
+            if (category != null && category.isNotEmpty) {
+              if (product.category != category) return false;
+            }
+            if (minPrice != null && product.price < minPrice) return false;
+            if (maxPrice != null && product.price > maxPrice) return false;
+
+            // If there's no keyword, filtering by category/price is enough.
+            if (terms.isEmpty) return true;
+
+            final haystack = <String>[
+              product.name,
+              product.description,
+              product.category,
+              ...product.tags,
+            ].join(' ').toLowerCase();
+
+            // Every typed token should match somewhere in the product text.
+            return terms.every(haystack.contains);
+          })
+          .toList();
+
+      if (terms.isEmpty) {
+        // No keyword: keep popular items first.
+        candidates.sort((a, b) => b.viewCount.compareTo(a.viewCount));
+        return candidates.take(limit).toList();
+      }
+
+      final joinedQuery = terms.join(' ');
+      int relevance(ProductModel product) {
+        final name = product.name.toLowerCase();
+        final description = product.description.toLowerCase();
+        final tagMatch = product.tags.any(
+          (tag) => tag.toLowerCase().contains(joinedQuery),
+        );
+
+        var score = 0;
+        if (name == joinedQuery) score += 100;
+        if (name.startsWith(joinedQuery)) score += 60;
+        if (name.contains(joinedQuery)) score += 40;
+        if (tagMatch) score += 25;
+        if (description.contains(joinedQuery)) score += 12;
+        score += product.viewCount ~/ 100;
+        return score;
+      }
+
+      candidates.sort((a, b) {
+        final scoreCompare = relevance(b).compareTo(relevance(a));
+        if (scoreCompare != 0) return scoreCompare;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+
+      return candidates.take(limit).toList();
     } catch (e) {
       debugPrint('[FirestoreService] searchProducts error: $e');
       rethrow;
@@ -150,15 +196,61 @@ class FirestoreService {
     int limit = 20,
   }) async {
     try {
+      final terms = tags
+          .map((t) => t.trim().toLowerCase())
+          .where((t) => t.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (terms.isEmpty) return [];
+
+      // Fetch active candidates, then do robust matching client-side.
       final snap = await _db
           .collection(FirestorePaths.products)
-          // .where('isActive', isEqualTo: true)
-          .where('tags', arrayContainsAny: tags)
-          .limit(limit)
+          .where('isActive', isEqualTo: true)
+          .limit(300)
           .get();
-      return snap.docs
+
+      final candidates = snap.docs
           .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .where((product) {
+            final normalizedCategory =
+                ProductCategory.normalizeCategoryKey(product.category);
+            final haystack = <String>{
+              product.name.toLowerCase(),
+              product.description.toLowerCase(),
+              normalizedCategory,
+              ...product.tags.map((tag) => tag.toLowerCase()),
+            }.join(' ');
+
+            return terms.any(haystack.contains);
+          })
           .toList();
+
+      int score(ProductModel product) {
+        final normalizedCategory =
+            ProductCategory.normalizeCategoryKey(product.category);
+        final haystack = <String>{
+          product.name.toLowerCase(),
+          product.description.toLowerCase(),
+          normalizedCategory,
+          ...product.tags.map((tag) => tag.toLowerCase()),
+        }.join(' ');
+
+        var matched = 0;
+        for (final term in terms) {
+          if (haystack.contains(term)) matched++;
+        }
+        return (matched * 100) + product.viewCount + (product.avgRating * 10).toInt();
+      }
+
+      candidates.sort((a, b) {
+        final cmp = score(b).compareTo(score(a));
+        if (cmp != 0) return cmp;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+
+      return candidates.take(limit).toList();
     } catch (e) {
       debugPrint('[FirestoreService] searchByTags error: $e');
       rethrow;
@@ -244,6 +336,36 @@ class FirestoreService {
 
   // TODO: M1 — auth-related user doc writes go here
   // TODO: M3 — shop analytics writes go here
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // M1/M5 — User Profile
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Updates customer profile fields with merge semantics.
+  Future<void> updateUserProfile({
+    required String uid,
+    String? displayName,
+    Map<String, dynamic>? shippingAddress,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (displayName != null && displayName.trim().isNotEmpty) {
+        updates['displayName'] = displayName.trim();
+      }
+      if (shippingAddress != null) {
+        updates['shippingAddress'] = shippingAddress;
+      }
+
+      if (updates.isEmpty) return;
+
+      await _db
+          .doc(FirestorePaths.userDoc(uid))
+          .set(updates, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[FirestoreService] updateUserProfile error: $e');
+      rethrow;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // M4 — Inventory & Content Management
