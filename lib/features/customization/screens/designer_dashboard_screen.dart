@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../models/product_model.dart';
 import '../../../models/custom_request_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
-import 'custom_request_detail_screen.dart';
+import '../../../providers/product_provider.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
 
 class DesignerDashboardScreen extends ConsumerWidget {
   const DesignerDashboardScreen({super.key});
@@ -27,7 +30,8 @@ class DesignerDashboardScreen extends ConsumerWidget {
       ),
       backgroundColor: AppColors.background,
       body: incoming.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () =>
+            const Center(child: LoadingShimmer(height: 120, width: 120)),
         error: (e, _) => Center(child: Text('Could not load requests: $e')),
         data: (requests) {
           if (requests.isEmpty) {
@@ -37,8 +41,12 @@ class DesignerDashboardScreen extends ConsumerWidget {
           final categorized = {
             'new': requests.where((r) => r.status == 'pending').toList(),
             'assigned': requests.where((r) => r.status == 'assigned').toList(),
-            'in_progress': requests.where((r) => r.status == 'in_progress').toList(),
-            'completed': requests.where((r) => r.status == 'completed').toList(),
+            'in_progress': requests
+                .where((r) => r.status == 'in_progress')
+                .toList(),
+            'completed': requests
+                .where((r) => r.status == 'completed')
+                .toList(),
             'rejected': requests.where((r) => r.status == 'rejected').toList(),
           };
 
@@ -89,10 +97,17 @@ class _RequestTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final productId = request.productId;
+    final AsyncValue<ProductModel>? productAsync =
+        (productId != null && productId.isNotEmpty)
+        ? ref.watch(productProvider(productId))
+        : null;
+
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => CustomRequestDetailScreen(requestId: request.requestId),
-      )),
+      onTap: () => context.goNamed(
+        'custom-request-detail',
+        pathParameters: {'id': request.requestId},
+      ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         margin: const EdgeInsets.symmetric(vertical: 6),
@@ -104,16 +119,81 @@ class _RequestTile extends ConsumerWidget {
         ),
         child: Row(
           children: [
+            if (productAsync != null)
+              productAsync.when(
+                loading: () => const LoadingShimmer(height: 52, width: 52),
+                error: (_, __) => Container(
+                  height: 52,
+                  width: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.image_outlined,
+                    color: AppColors.textHint,
+                  ),
+                ),
+                data: (p) => Container(
+                  height: 52,
+                  width: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.divider),
+                    image: p.thumbnailUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(p.thumbnailUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: p.thumbnailUrl.isEmpty
+                      ? const Icon(
+                          Icons.image_outlined,
+                          color: AppColors.textHint,
+                        )
+                      : null,
+                ),
+              ),
+            if (productAsync != null) const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Type: ${request.type}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Type: ${request.type}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Desc: ${request.description.isEmpty ? 'No details' : request.description}',
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    'Desc: ${request.description.isEmpty ? 'No details' : request.description}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Text('Product: ${request.productId ?? 'N/A'}'),
+                  if (productAsync != null)
+                    productAsync.maybeWhen(
+                      data: (p) {
+                        final needsModel =
+                            p.isAREnabled &&
+                            (p.arModelUrl == null || p.arModelUrl!.isEmpty);
+                        if (!needsModel) return const SizedBox.shrink();
+                        return const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                            'AR enabled — model not uploaded yet',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                      orElse: () => const SizedBox.shrink(),
+                    ),
                 ],
               ),
             ),
@@ -124,8 +204,11 @@ class _RequestTile extends ConsumerWidget {
                 color: _badgeColor(request.status).withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(request.status.replaceAll('_', ' '), style: TextStyle(color: _badgeColor(request.status))),
-            )
+              child: Text(
+                request.status.replaceAll('_', ' '),
+                style: TextStyle(color: _badgeColor(request.status)),
+              ),
+            ),
           ],
         ),
       ),
