@@ -5,6 +5,7 @@ import '../../../models/custom_request_message_model.dart';
 import '../../../models/custom_request_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class CustomRequestDetailScreen extends ConsumerStatefulWidget {
   final String requestId;
@@ -85,6 +86,7 @@ class _CustomRequestDetailScreenState
     final requestAsync = ref.watch(customRequestByIdProvider(widget.requestId));
     final messagesAsync = ref.watch(customRequestMessagesProvider(widget.requestId));
     final currentUser = ref.watch(currentUserProvider);
+    final showCustomerNavBar = currentUser?.role == 'customer';
 
     return Scaffold(
       appBar: AppBar(
@@ -250,6 +252,9 @@ class _CustomRequestDetailScreenState
           );
         },
       ),
+      bottomNavigationBar: showCustomerNavBar
+          ? const CustomerBottomNavBar(currentIndex: 4)
+          : null,
     );
   }
 }

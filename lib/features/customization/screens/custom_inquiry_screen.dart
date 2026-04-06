@@ -8,6 +8,7 @@ import '../../../models/shop_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
 import '../../../services/storage_service.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class CustomInquiryScreen extends ConsumerStatefulWidget {
   const CustomInquiryScreen({super.key});
@@ -198,6 +199,7 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
     );
   }
 }

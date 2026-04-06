@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   final String message;
+  final int? currentNavIndex;
 
   const PlaceholderScreen({
     super.key,
     required this.title,
     required this.message,
+    this.currentNavIndex,
   });
 
   @override
@@ -64,6 +67,9 @@ class PlaceholderScreen extends StatelessWidget {
           ),
         ),
       ),
+      bottomNavigationBar: currentNavIndex != null
+          ? CustomerBottomNavBar(currentIndex: currentNavIndex!)
+          : null,
     );
   }
 }

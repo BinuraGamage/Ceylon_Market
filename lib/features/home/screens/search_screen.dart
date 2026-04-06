@@ -7,6 +7,7 @@ import '../../../providers/search_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -103,6 +104,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
     );
   }
 

@@ -8,6 +8,7 @@ import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class CategoryBrowseScreen extends ConsumerStatefulWidget {
   /// The category string — must match a value from [ProductCategory.all].
@@ -88,6 +89,7 @@ class _CategoryBrowseScreenState
           return _ProductGrid(products: sorted);
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
     );
   }
 

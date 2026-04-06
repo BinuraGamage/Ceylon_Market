@@ -8,6 +8,7 @@ import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class ProductReviewsScreen extends ConsumerStatefulWidget {
   const ProductReviewsScreen({super.key, required this.productId});
@@ -53,6 +54,7 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
     final submitState = ref.watch(reviewSubmitProvider);
     final currentUser = ref.watch(currentUserProvider);
     final canReview = currentUser != null && currentUser.role == 'customer';
+    final showCustomerNavBar = currentUser?.role == 'customer';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -219,6 +221,9 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
           );
         },
       ),
+      bottomNavigationBar: showCustomerNavBar
+          ? const CustomerBottomNavBar(currentIndex: 0)
+          : null,
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../../providers/order_provider.dart';
 import '../../../shared/widgets/app_button.dart' show AppButton, AppButtonVariant;
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class OrderConfirmationScreen extends ConsumerWidget {
   const OrderConfirmationScreen({super.key, required this.orderId});
@@ -40,6 +41,7 @@ class OrderConfirmationScreen extends ConsumerWidget {
           return _ConfirmationView(orderId: orderId, order: order);
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 3),
     );
   }
 }

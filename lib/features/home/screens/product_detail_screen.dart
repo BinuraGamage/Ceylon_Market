@@ -12,6 +12,7 @@ import '../../../providers/product_provider.dart';
 import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -56,6 +57,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(productProvider(widget.productId));
+    final currentUser = ref.watch(currentUserProvider);
+    final showCustomerNavBar = currentUser?.role == 'customer';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -91,8 +94,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ),
       ),
       bottomNavigationBar: productAsync.maybeWhen(
-        data: (product) => ProductDetailBottomBar(product: product),
-        orElse: () => null,
+        data: (product) {
+          if (!showCustomerNavBar) {
+            return ProductDetailBottomBar(product: product);
+          }
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ProductDetailBottomBar(
+                product: product,
+                includeBottomSafeArea: false,
+              ),
+              const CustomerBottomNavBar(currentIndex: 0),
+            ],
+          );
+        },
+        orElse: () => showCustomerNavBar
+            ? const CustomerBottomNavBar(currentIndex: 0)
+            : null,
       ),
     );
   }
@@ -650,17 +669,26 @@ class _ShopPreview extends ConsumerWidget {
 
 class ProductDetailBottomBar extends ConsumerWidget {
   final ProductModel product;
+  final bool includeBottomSafeArea;
 
-  const ProductDetailBottomBar({super.key, required this.product});
+  const ProductDetailBottomBar({
+    super.key,
+    required this.product,
+    this.includeBottomSafeArea = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bottomPadding = includeBottomSafeArea
+        ? MediaQuery.of(context).padding.bottom + 12
+        : 12.0;
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        bottom: bottomPadding,
       ),
       decoration: const BoxDecoration(
         color: AppColors.surface,

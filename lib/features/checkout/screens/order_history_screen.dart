@@ -7,6 +7,7 @@ import '../../../models/order_model.dart';
 import '../../../providers/order_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class OrderHistoryScreen extends ConsumerWidget {
   const OrderHistoryScreen({super.key});
@@ -31,6 +32,7 @@ class OrderHistoryScreen extends ConsumerWidget {
             ? const _EmptyOrdersView()
             : _OrdersListView(orders: orders),
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
     );
   }
 }

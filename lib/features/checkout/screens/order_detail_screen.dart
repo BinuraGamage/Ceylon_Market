@@ -8,6 +8,7 @@ import '../../../providers/order_provider.dart';
 import '../../../shared/widgets/app_button.dart' show AppButton, AppButtonVariant;
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({super.key, required this.orderId});
@@ -38,6 +39,7 @@ class OrderDetailScreen extends ConsumerWidget {
           return _OrderDetailView(order: order);
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
     );
   }
 }

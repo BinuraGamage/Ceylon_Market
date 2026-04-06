@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/custom_request_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
-import 'custom_request_detail_screen.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class MyRequestsScreen extends ConsumerWidget {
   const MyRequestsScreen({super.key});
@@ -77,9 +78,10 @@ class MyRequestsScreen extends ConsumerWidget {
                             ? req.description
                             : 'No description provided'),
                         trailing: _statusChip(req.status),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => CustomRequestDetailScreen(requestId: req.requestId),
-                        )),
+                        onTap: () => context.pushNamed(
+                          'custom-request-detail',
+                          pathParameters: {'id': req.requestId},
+                        ),
                       ),
                     );
                   }).toList(),
@@ -90,6 +92,7 @@ class MyRequestsScreen extends ConsumerWidget {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
     );
   }
 }

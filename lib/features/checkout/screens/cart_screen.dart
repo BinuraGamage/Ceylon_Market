@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../widgets/cart_item_card.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
@@ -34,6 +35,7 @@ class CartScreen extends ConsumerWidget {
             ? const _EmptyCartView()
             : _CartContentView(items: items, total: cartTotal),
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 3),
     );
   }
 }

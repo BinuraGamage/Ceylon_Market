@@ -8,12 +8,14 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/product_provider.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../models/product_model.dart';
 import '../../../models/offer_model.dart';
 import '../../../models/shop_model.dart';
 import '../widgets/video_player_widget.dart';
+import '../../home/widgets/customer_bottom_nav_bar.dart';
 
 /// Public-facing store page — shows shop info, videos, and product grid.
 /// M3 owns this file. Located at features/shop/screens/store_room_screen.dart
@@ -27,26 +29,29 @@ class StoreRoomScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shopAsync = ref.watch(shopByIdProvider(shopId));
+    final currentUser = ref.watch(currentUserProvider);
+    final showCustomerNavBar = currentUser?.role == 'customer';
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: shopAsync.when(
         loading: () => const _StoreRoomShimmer(),
-        error: (error, _) => Scaffold(
-          body: Center(
-            child: ErrorBanner(
-              message: error.toString(),
-              onRetry: () => ref.invalidate(shopByIdProvider(shopId)),
-            ),
+        error: (error, _) => Center(
+          child: ErrorBanner(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(shopByIdProvider(shopId)),
           ),
         ),
         data: (shop) {
           if (shop == null) {
-            return const Scaffold(body: Center(child: Text('Shop not found.')));
+            return const Center(child: Text('Shop not found.'));
           }
           return _StoreRoomContent(shop: shop);
         },
       ),
+      bottomNavigationBar: showCustomerNavBar
+          ? const CustomerBottomNavBar(currentIndex: 0)
+          : null,
     );
   }
 }

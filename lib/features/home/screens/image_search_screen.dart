@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../widgets/customer_bottom_nav_bar.dart';
 
 class ImageSearchScreen extends ConsumerWidget {
   const ImageSearchScreen({super.key});
@@ -58,6 +59,7 @@ class ImageSearchScreen extends ConsumerWidget {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
     );
   }
 
