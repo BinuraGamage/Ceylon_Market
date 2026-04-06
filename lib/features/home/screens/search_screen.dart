@@ -74,7 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           IconButton(
             icon: const Icon(Icons.image_search_rounded,
                 color: AppColors.textPrimary),
-            onPressed: () => context.goNamed('image-search'),
+            onPressed: () => context.pushNamed('image-search'),
           ),
         ],
       ),

@@ -21,7 +21,7 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.goNamed(
+      onTap: () => context.pushNamed(
         'product-detail',
         pathParameters: {'id': product.productId},
         extra: product.customizable
@@ -197,7 +197,7 @@ class ProductListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.goNamed(
+      onTap: () => context.pushNamed(
         'product-detail',
         pathParameters: {'id': product.productId},
         extra: product.customizable

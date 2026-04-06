@@ -768,11 +768,15 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.orders)
         .where('customerId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort locally to avoid composite index requirement for (customerId + createdAt).
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// Stream orders for a shop (seller view).
@@ -780,11 +784,15 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.orders)
         .where('shopId', isEqualTo: shopId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort locally to avoid composite index requirement for (shopId + createdAt).
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// Update order status.

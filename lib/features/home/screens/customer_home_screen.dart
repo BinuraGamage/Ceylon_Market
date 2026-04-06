@@ -46,7 +46,7 @@ class CustomerHomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () => context.goNamed('custom-inquiry'),
+                      onPressed: () => context.pushNamed('custom-inquiry'),
                       child: const Text('Start'),
                     ),
                   ],
@@ -56,7 +56,7 @@ class CustomerHomeScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: OutlinedButton(
-                onPressed: () => context.goNamed('my-requests'),
+                onPressed: () => context.pushNamed('my-requests'),
                 child: const Text('View My Requests'),
               ),
             ),
@@ -119,12 +119,12 @@ class _HomeAppBar extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.image_search_rounded, color: AppColors.primary),
             tooltip: 'Search by image',
-            onPressed: () => context.goNamed('image-search'),
+            onPressed: () => context.pushNamed('image-search'),
           ),
           IconButton(
             icon: const Icon(Icons.shopping_bag_outlined, color: AppColors.textPrimary),
             tooltip: 'Cart',
-            onPressed: () => context.goNamed('cart'),
+            onPressed: () => context.pushNamed('cart'),
           ),
           const SizedBox(width: 8),
           const CurrentUserProfileButton(radius: 16),
@@ -144,7 +144,7 @@ class _SearchBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: GestureDetector(
-        onTap: () => context.goNamed('search'),
+        onTap: () => context.pushNamed('search'),
         child: Container(
           height: 48,
           decoration: BoxDecoration(
@@ -191,7 +191,7 @@ class _CategoryChips extends StatelessWidget {
           return GestureDetector(
             onTap: () {
               if (category.isNotEmpty) {
-                context.goNamed(
+                context.pushNamed(
                   'category-browse',
                   pathParameters: {'name': category},
                 );
@@ -362,7 +362,7 @@ class _ShopProductRow extends ConsumerWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.goNamed(
+                onTap: () => context.pushNamed(
                   'shop',
                   pathParameters: {'id': shop.shopId},
                 ),

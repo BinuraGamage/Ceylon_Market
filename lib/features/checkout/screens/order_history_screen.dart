@@ -25,6 +25,7 @@ class OrderHistoryScreen extends ConsumerWidget {
         loading: () => const _OrdersLoadingView(),
         error: (error, stack) => ErrorBanner(
           message: 'Failed to load orders: ${error.toString()}',
+          onRetry: () => ref.invalidate(userOrdersProvider),
         ),
         data: (orders) => orders.isEmpty
             ? const _EmptyOrdersView()
@@ -117,7 +118,7 @@ class _OrderCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: () => context.go('/order-detail/${order.orderId}'),
+        onTap: () => context.push('/order-detail/${order.orderId}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

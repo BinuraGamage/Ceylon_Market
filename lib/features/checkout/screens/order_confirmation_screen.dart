@@ -18,13 +18,24 @@ class OrderConfirmationScreen extends ConsumerWidget {
     final ordersAsync = ref.watch(userOrdersProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Order Confirmation'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+      ),
       body: ordersAsync.when(
         loading: () => const _LoadingView(),
-        error: (error, stack) => _ErrorView(message: error.toString()),
+        error: (error, stack) => _ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(userOrdersProvider),
+        ),
         data: (orders) {
           final order = orders.where((o) => o.orderId == orderId).firstOrNull;
           if (order == null) {
-            return _ErrorView(message: 'Order not found');
+            return _ErrorView(
+              message: 'Order not found',
+              onRetry: () => ref.invalidate(userOrdersProvider),
+            );
           }
           return _ConfirmationView(orderId: orderId, order: order);
         },
@@ -43,9 +54,10 @@ class _LoadingView extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message});
+  const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -53,11 +65,17 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ErrorBanner(message: message),
+          ErrorBanner(message: message, onRetry: onRetry),
           const SizedBox(height: 16),
           AppButton(
             label: 'Go to Orders',
-            onPressed: () => context.go('/order-history'),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/order-history');
+              }
+            },
           ),
         ],
       ),
@@ -162,7 +180,7 @@ class _ConfirmationView extends StatelessWidget {
             // Actions
             AppButton(
               label: 'View Order Details',
-              onPressed: () => context.go('/order-detail/$orderId'),
+              onPressed: () => context.push('/order-detail/$orderId'),
             ),
             const SizedBox(height: 12),
             AppButton(
@@ -172,7 +190,7 @@ class _ConfirmationView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.go('/order-history'),
+              onPressed: () => context.push('/order-history'),
               child: Text(
                 'View All Orders',
                 style: AppTextStyles.body.copyWith(color: AppColors.primary),

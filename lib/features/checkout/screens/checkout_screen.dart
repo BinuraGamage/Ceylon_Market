@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/order_model.dart';
@@ -22,6 +24,21 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+  static const String _stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue:
+        'pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ',
+  );
+  static const String _stripeSecretKey = String.fromEnvironment(
+    'STRIPE_SECRET_KEY',
+    defaultValue:
+        'sk_test_51RxQUx1MrHSdlzA0HJ5SGdXpozdCqWwE10qH6EMhCmY1cpPP9M8IaPPSGHN4OUA6JBeTXqSAmWb8rwKSGINUx6Sg007Vvmrjm2',
+  );
+  static const String _stripeApiBaseUrl = String.fromEnvironment(
+    'STRIPE_API_BASE_URL',
+    defaultValue: 'https://api.stripe.com/v1',
+  );
+
   final _formKey = GlobalKey<FormState>();
   final _promoCodeController = TextEditingController();
 
@@ -42,8 +59,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _initializeStripe() {
-    // Initialize Stripe with test publishable key
-    Stripe.publishableKey = 'pk_test_51RxQUx1MrHSdlzA0jPDunhYSjQQIdcfkI4mqagAO6qf8eL8H3K3OcQKilOsAQf5NDnjpRfyYWUD6NWTxbJVln0jD00gvcfafJJ';
+    // Publishable key can safely be used on mobile clients.
+    Stripe.publishableKey = _stripePublishableKey;
     Stripe.merchantIdentifier = 'merchant.ceylonmarket';
   }
 
@@ -276,18 +293,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Present Payment Sheet
       await Stripe.instance.presentPaymentSheet();
 
+      final paymentRef = paymentIntent['payment_intent_id']?.toString() ??
+          paymentIntent['id']?.toString();
+
       // Payment successful - create order
       final orderId = await orderNotifier.createOrder(order.copyWith(
         paymentStatus: 'paid',
-        paymentRef: paymentIntent['id'], // 'id' from stripe intent usually (if backend returns it) or just client_secret
+        paymentRef: paymentRef,
       ));
 
       // Clear cart after successful order
       await ref.read(cartNotifierProvider.notifier).clearCart();
 
       if (!context.mounted) return;
-      // Navigate to order confirmation
-      context.go('/order-confirmation/$orderId');
+      // Replace checkout with confirmation so back returns to the previous screen.
+      context.pushReplacement('/order-confirmation/$orderId');
     } on StripeException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -303,21 +323,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<Map<String, dynamic>> _createPaymentIntent(double amount) async {
     try {
-      final functions = FirebaseFunctions.instance;
+      if (_stripeSecretKey.isEmpty) {
+        throw Exception(
+          'Missing STRIPE_SECRET_KEY. Start the app with --dart-define=STRIPE_SECRET_KEY=sk_test_xxx',
+        );
+      }
 
-      // Call the createPaymentIntent Cloud Function
-      final result = await functions
-          .httpsCallable('createPaymentIntent')
-          .call({
-        'amount': (amount * 100).toInt(), // Convert to cents (Stripe expects smallest currency unit)
-        'currency': 'lkr',
-        'metadata': {
-          'customer_id': ref.read(currentUserProvider)?.uid ?? '',
-          'customer_email': ref.read(currentUserProvider)?.email ?? '',
+      final amountInMinorUnit = (amount * 100).toInt();
+      final uri = Uri.parse('$_stripeApiBaseUrl/payment_intents');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $_stripeSecretKey',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      });
+        body: {
+          'amount': amountInMinorUnit.toString(),
+          'currency': 'lkr',
+          'automatic_payment_methods[enabled]': 'true',
+          'metadata[customer_id]': ref.read(currentUserProvider)?.uid ?? '',
+          'metadata[customer_email]': ref.read(currentUserProvider)?.email ?? '',
+        },
+      );
 
-      return Map<String, dynamic>.from(result.data);
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final errorMessage =
+            (payload['error'] as Map<String, dynamic>?)?['message'] as String? ??
+            'Stripe request failed';
+        throw Exception(errorMessage);
+      }
+
+      return {
+        'client_secret': payload['client_secret'],
+        'payment_intent_id': payload['id'],
+        'amount': payload['amount'],
+        'currency': payload['currency'],
+      };
     } catch (e) {
       throw Exception('Failed to create payment intent: $e');
     }
@@ -346,7 +388,13 @@ class _EmptyCartView extends StatelessWidget {
           const SizedBox(height: 24),
           AppButton(
             label: 'Continue Shopping',
-            onPressed: () => context.go('/customer'),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/customer');
+              }
+            },
           ),
         ],
       ),

@@ -125,7 +125,13 @@ class _ProductContent extends ConsumerWidget {
           pinned: true,
           backgroundColor: AppColors.background,
           leading: GestureDetector(
-            onTap: () => context.pop(),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.goNamed('customer-home');
+              }
+            },
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -563,7 +569,7 @@ class _ShopPreview extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (ShopModel shop) => GestureDetector(
         onTap: () =>
-            context.goNamed('shop', pathParameters: {'id': shop.shopId}),
+            context.pushNamed('shop', pathParameters: {'id': shop.shopId}),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(

@@ -78,7 +78,13 @@ class _EmptyCartView extends StatelessWidget {
           const SizedBox(height: 24),
           AppButton(
             label: 'Continue Shopping',
-            onPressed: () => context.go('/customer'),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/customer');
+              }
+            },
           ),
         ],
       ),
@@ -161,7 +167,7 @@ class _CartSummary extends StatelessWidget {
             const SizedBox(height: 16),
             AppButton(
               label: 'Proceed to Checkout',
-              onPressed: () => context.go('/checkout'),
+              onPressed: () => context.push('/checkout'),
               icon: Icons.arrow_forward,
             ),
           ],

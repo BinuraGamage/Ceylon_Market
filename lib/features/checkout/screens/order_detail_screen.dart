@@ -26,7 +26,10 @@ class OrderDetailScreen extends ConsumerWidget {
       ),
       body: ordersAsync.when(
         loading: () => const Center(child: LoadingShimmer(height: 300)),
-        error: (error, stack) => ErrorBanner(message: error.toString()),
+        error: (error, stack) => ErrorBanner(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(userOrdersProvider),
+        ),
         data: (orders) {
           final order = orders.where((o) => o.orderId == orderId).firstOrNull;
           if (order == null) {
@@ -197,7 +200,13 @@ class _OrderDetailView extends StatelessWidget {
         // Back Button
         AppButton(
           label: 'Back to Orders',
-          onPressed: () => context.go('/order-history'),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/order-history');
+            }
+          },
           variant: AppButtonVariant.outline,
         ),
       ],

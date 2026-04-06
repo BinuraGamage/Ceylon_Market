@@ -120,7 +120,7 @@ class _DashboardContent extends ConsumerWidget {
             ),
           ),
           title: GestureDetector(
-            onTap: () => context.goNamed('search'),
+            onTap: () => context.pushNamed('search'),
             child: Container(
               height: 42,
               decoration: BoxDecoration(
@@ -194,7 +194,7 @@ class _DashboardContent extends ConsumerWidget {
                     ),
                     // Edit logo button
                     GestureDetector(
-                      onTap: () => context.goNamed(
+                      onTap: () => context.pushNamed(
                         'edit-shop',
                         pathParameters: {'id': shop.shopId},
                       ),
@@ -245,7 +245,7 @@ class _DashboardContent extends ConsumerWidget {
                     ),
                     _OutlineButton(
                       label: 'My Insights',
-                      onTap: () => context.goNamed('seller-insights'),
+                      onTap: () => context.pushNamed('seller-insights'),
                       filled: true,
                     ),
                     _OutlineButton(
@@ -704,7 +704,7 @@ class _NoShopState extends StatelessWidget {
           Text("You don't have a shop yet.", style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () => context.goNamed('seller-register'),
+            onPressed: () => context.pushNamed('seller-register'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textOnPrimary,

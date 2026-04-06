@@ -64,20 +64,19 @@ class _StoreRoomContent extends ConsumerWidget {
           backgroundColor: AppColors.background,
           floating: true,
           pinned: false,
-          leading: Padding(
-            padding: const EdgeInsets.all(8),
-            child: CircleAvatar(
-              backgroundImage: shop.logoUrl != null
-                  ? CachedNetworkImageProvider(shop.logoUrl!)
-                  : null,
-              backgroundColor: AppColors.surface,
-              child: shop.logoUrl == null
-                  ? const Icon(Icons.person, color: AppColors.textSecondary)
-                  : null,
-            ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            color: AppColors.textPrimary,
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.goNamed('customer-home');
+              }
+            },
           ),
           title: GestureDetector(
-            onTap: () => context.goNamed('search'),
+            onTap: () => context.pushNamed('search'),
             child: Container(
               height: 42,
               decoration: BoxDecoration(

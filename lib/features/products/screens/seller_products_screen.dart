@@ -83,7 +83,7 @@ class SellerProductsScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final product = products[index];
               return InkWell(
-                onTap: () => context.goNamed(
+                onTap: () => context.pushNamed(
                   'product-detail',
                   pathParameters: {'id': product.productId},
                   extra: product.customizable
@@ -170,14 +170,14 @@ class SellerProductsScreen extends ConsumerWidget {
                       PopupMenuButton<String>(
                         onSelected: (value) async {
                           if (value == 'edit') {
-                            context.goNamed(
+                            context.pushNamed(
                               'seller-product-edit',
                               pathParameters: {'id': product.productId},
                             );
                             return;
                           }
                           if (value == 'reviews') {
-                            context.goNamed(
+                            context.pushNamed(
                               'product-reviews',
                               pathParameters: {'id': product.productId},
                             );

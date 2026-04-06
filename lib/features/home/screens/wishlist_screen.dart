@@ -96,7 +96,7 @@ class _WishlistGridItem extends ConsumerWidget {
       loading: () => const LoadingShimmer(height: 200, width: double.infinity),
       error: (e, _) => const Center(child: Text('Error loading product')),
       data: (product) => GestureDetector(
-        onTap: () => context.goNamed(
+        onTap: () => context.pushNamed(
           'product-detail',
           pathParameters: {'id': productId},
           extra: product.customizable
