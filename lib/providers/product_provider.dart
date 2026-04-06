@@ -359,7 +359,6 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
     required List<String> colors,
     required bool customizable,
     required bool isAREnabled,
-    String? arModelUrl,
     required List<File> imageFiles,
   }) async {
     state = state.copyWith(
@@ -373,6 +372,11 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
         throw Exception(
           'Seller shop not found. Please complete shop registration.',
         );
+      }
+
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser == null) {
+        throw Exception('Login required.');
       }
 
       final finalTags = await _buildFinalTags(
@@ -397,7 +401,7 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
         isActive: true,
         customizable: customizable,
         isAREnabled: isAREnabled,
-        arModelUrl: arModelUrl,
+        arModelUrl: null,
         avgRating: 0,
         reviewCount: 0,
         viewCount: 0,
@@ -425,6 +429,22 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
             );
       }
 
+      if (isAREnabled) {
+        try {
+          await ref
+              .read(firestoreServiceProvider)
+              .ensureArModelTaskForProduct(
+                productId: productId,
+                productName: name,
+                shopId: shop.shopId,
+                sellerId: currentUser.uid,
+              );
+        } catch (e) {
+          // Product creation must not fail if a designer is unavailable.
+          debugPrint('[SellerProductFormNotifier] AR task skipped: $e');
+        }
+      }
+
       ref.invalidate(sellerProductsProvider);
       state = state.copyWith(isSubmitting: false, isSuccess: true);
     } catch (e) {
@@ -445,7 +465,6 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
     required List<String> colors,
     required bool customizable,
     required bool isAREnabled,
-    String? arModelUrl,
     required List<File> newImageFiles,
   }) async {
     state = state.copyWith(
@@ -454,6 +473,11 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
       isSuccess: false,
     );
     try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser == null) {
+        throw Exception('Login required.');
+      }
+
       final finalTags = await _buildFinalTags(
         manualTags: tags,
         imageFiles: newImageFiles,
@@ -488,10 +512,30 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
               'colors': colors,
               'customizable': customizable,
               'isAREnabled': isAREnabled,
-              'arModelUrl': arModelUrl,
+              // Seller must not set/override the 3D model URL.
+              // Designers upload and attach it later.
+              'arModelUrl': existing.arModelUrl,
               'images': finalImages,
             },
           );
+
+      final shouldCreateArTask =
+          isAREnabled &&
+          (existing.arModelUrl == null || existing.arModelUrl!.isEmpty);
+      if (shouldCreateArTask) {
+        try {
+          await ref
+              .read(firestoreServiceProvider)
+              .ensureArModelTaskForProduct(
+                productId: existing.productId,
+                productName: name,
+                shopId: existing.shopId,
+                sellerId: currentUser.uid,
+              );
+        } catch (e) {
+          debugPrint('[SellerProductFormNotifier] AR task skipped: $e');
+        }
+      }
 
       ref.invalidate(sellerProductsProvider);
       ref.invalidate(productProvider(existing.productId));

@@ -34,7 +34,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _materialsController = TextEditingController();
   final _sizesController = TextEditingController();
   final _colorsController = TextEditingController();
-  final _arUrlController = TextEditingController();
 
   final List<File> _newImages = [];
   String _category = ProductCategory.other;
@@ -53,7 +52,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _materialsController.dispose();
     _sizesController.dispose();
     _colorsController.dispose();
-    _arUrlController.dispose();
     super.dispose();
   }
 
@@ -96,9 +94,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       final materials = _splitCsv(_materialsController.text);
       final sizes = _splitCsv(_sizesController.text);
       final colors = _splitCsv(_colorsController.text);
-      final arUrl = _arUrlController.text.trim().isEmpty
-          ? null
-          : _arUrlController.text.trim();
 
       if (_isEdit && existing != null) {
         await ref
@@ -116,7 +111,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               colors: colors,
               customizable: _customizable,
               isAREnabled: _isAREnabled,
-              arModelUrl: arUrl,
               newImageFiles: _newImages,
             );
       } else {
@@ -134,7 +128,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               colors: colors,
               customizable: _customizable,
               isAREnabled: _isAREnabled,
-              arModelUrl: arUrl,
               imageFiles: _newImages,
             );
       }
@@ -169,7 +162,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _materialsController.text = (product.materials ?? []).join(', ');
     _sizesController.text = (product.sizes ?? []).join(', ');
     _colorsController.text = (product.colors ?? []).join(', ');
-    _arUrlController.text = product.arModelUrl ?? '';
     _category = product.category;
     _customizable = product.customizable;
     _isAREnabled = product.isAREnabled;
@@ -388,15 +380,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               title: const Text('AR enabled'),
               activeThumbColor: AppColors.primary,
             ),
-            if (_isAREnabled) ...[
-              AppTextField(
-                controller: _arUrlController,
-                label: 'AR model URL',
-                hint: 'https://.../model.glb',
-                validator: Validators.required,
+            if (_isAREnabled)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'When AR is enabled, a designer will generate and upload the 3D model (.glb).',
+                  style: AppTextStyles.caption,
+                ),
               ),
-              const SizedBox(height: 12),
-            ],
             OutlinedButton.icon(
               onPressed: _pickImages,
               icon: const Icon(Icons.photo_library_outlined),

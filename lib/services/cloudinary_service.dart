@@ -32,6 +32,9 @@ class CloudinaryService {
   static String get _uploadVideoUrl =>
       'https://api.cloudinary.com/v1_1/$_cloudName/video/upload';
 
+  static String get _uploadRawUrl =>
+      'https://api.cloudinary.com/v1_1/$_cloudName/raw/upload';
+
   // ── Public API ────────────────────────────────────────────────────────
 
   /// Compresses [file] and uploads it to Cloudinary.
@@ -139,6 +142,50 @@ class CloudinaryService {
       rethrow;
     } catch (e) {
       debugPrint('[CloudinaryService.uploadVideo] Unexpected error: $e');
+      throw CloudinaryException('Unexpected upload error: $e', 0);
+    }
+  }
+
+  /// Uploads a raw file to Cloudinary (e.g. `.glb` 3D model).
+  /// Returns the secure HTTPS URL.
+  Future<String> uploadRaw({
+    required File file,
+    required String publicId,
+  }) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(_uploadRawUrl))
+        ..fields['upload_preset'] = _uploadPreset
+        ..fields['public_id'] = '$_folder/$publicId'
+        ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 200) {
+        debugPrint(
+          '[CloudinaryService.uploadRaw] HTTP ${response.statusCode}: ${response.body}',
+        );
+        throw CloudinaryException(
+          'Upload failed with status ${response.statusCode}',
+          response.statusCode,
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final secureUrl = json['secure_url'] as String?;
+      if (secureUrl == null || secureUrl.isEmpty) {
+        throw const CloudinaryException(
+          'No secure_url in Cloudinary response',
+          0,
+        );
+      }
+
+      debugPrint('[CloudinaryService.uploadRaw] Uploaded: $secureUrl');
+      return secureUrl;
+    } on CloudinaryException {
+      rethrow;
+    } catch (e) {
+      debugPrint('[CloudinaryService.uploadRaw] Unexpected error: $e');
       throw CloudinaryException('Unexpected upload error: $e', 0);
     }
   }

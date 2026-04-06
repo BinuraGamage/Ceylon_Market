@@ -28,13 +28,15 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     required String role,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(authServiceProvider).registerWithEmail(
-        email: email,
-        password: password,
-        displayName: displayName,
-        role: role,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(authServiceProvider)
+          .registerWithEmail(
+            email: email,
+            password: password,
+            displayName: displayName,
+            role: role,
+          ),
     );
     // Sync to currentUserProvider
     ref.read(currentUserProvider.notifier).state = state.value;
@@ -45,19 +47,18 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     required String password,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(authServiceProvider).loginWithEmail(
-        email: email,
-        password: password,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(authServiceProvider)
+          .loginWithEmail(email: email, password: password),
     );
     ref.read(currentUserProvider.notifier).state = state.value;
   }
 
   Future<void> signInWithGoogle({String role = 'customer'}) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(authServiceProvider).signInWithGoogle(role: role),
+    state = await AsyncValue.guard(
+      () => ref.read(authServiceProvider).signInWithGoogle(role: role),
     );
     ref.read(currentUserProvider.notifier).state = state.value;
   }
@@ -69,5 +70,6 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 }
 
-final authNotifierProvider =
-    AsyncNotifierProvider<AuthNotifier, UserModel?>(AuthNotifier.new);
+final authNotifierProvider = AsyncNotifierProvider<AuthNotifier, UserModel?>(
+  AuthNotifier.new,
+);

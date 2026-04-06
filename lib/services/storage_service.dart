@@ -7,6 +7,24 @@ class StorageService {
   StorageService._();
   static final StorageService instance = StorageService._();
 
+  Future<String> uploadArModel({
+    required File file,
+    required String shopId,
+    required String productId,
+  }) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final publicId = 'ar_models/$shopId/$productId/$timestamp';
+      return await CloudinaryService.instance.uploadRaw(
+        file: file,
+        publicId: publicId,
+      );
+    } catch (e) {
+      debugPrint('[StorageService] uploadArModel error: $e');
+      rethrow;
+    }
+  }
+
   Future<String> uploadProductImage({
     required File file,
     required String shopId,
@@ -59,4 +77,3 @@ class StorageService {
     }
   }
 }
-

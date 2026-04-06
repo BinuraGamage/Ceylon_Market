@@ -765,9 +765,11 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.cartCollection(uid))
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => CartItemModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((doc) => CartItemModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   /// Add item to cart or update quantity if already exists.
@@ -793,7 +795,10 @@ class FirestoreService {
       if (existingItems.docs.isNotEmpty) {
         // Update existing item quantity
         final existingDoc = existingItems.docs.first;
-        final existingItem = CartItemModel.fromMap(existingDoc.data(), existingDoc.id);
+        final existingItem = CartItemModel.fromMap(
+          existingDoc.data(),
+          existingDoc.id,
+        );
         await existingDoc.reference.update({
           'quantity': existingItem.quantity + quantity,
         });
@@ -856,7 +861,9 @@ class FirestoreService {
   /// Clear entire cart.
   Future<void> clearCart(String uid) async {
     try {
-      final cartItems = await _db.collection(FirestorePaths.cartCollection(uid)).get();
+      final cartItems = await _db
+          .collection(FirestorePaths.cartCollection(uid))
+          .get();
       final batch = _db.batch();
       for (final doc in cartItems.docs) {
         batch.delete(doc.reference);
@@ -977,28 +984,107 @@ class FirestoreService {
     }
   }
 
+  /// Picks any active designer user ID.
+  ///
+  /// This intentionally avoids ordering to reduce Firestore composite index
+  /// requirements in student setups.
+  Future<String?> getAnyActiveDesignerId() async {
+    try {
+      final snap = await _db
+          .collection(FirestorePaths.users)
+          .where('role', isEqualTo: 'designer')
+          .where('status', isEqualTo: 'active')
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty) return null;
+      return snap.docs.first.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] getAnyActiveDesignerId error: $e');
+      rethrow;
+    }
+  }
+
+  /// Ensures there is an open AR-model task for [productId].
+  ///
+  /// Creates a new custom request of type `ar_model` assigned to an active
+  /// designer, so it appears on the designer dashboard.
+  Future<void> ensureArModelTaskForProduct({
+    required String productId,
+    required String productName,
+    required String shopId,
+    required String sellerId,
+  }) async {
+    try {
+      // Avoid duplicates: if any open ar_model request exists, do nothing.
+      final existing = await _db
+          .collection(FirestorePaths.customRequests)
+          .where('productId', isEqualTo: productId)
+          .where('type', isEqualTo: 'ar_model')
+          .get();
+
+      final hasOpen = existing.docs.any((doc) {
+        final data = doc.data();
+        final status = (data['status'] as String?) ?? 'pending';
+        return status != 'completed' && status != 'rejected';
+      });
+      if (hasOpen) return;
+
+      final designerId = await getAnyActiveDesignerId();
+      if (designerId == null || designerId.isEmpty) {
+        throw Exception('No active designer found to assign AR task.');
+      }
+
+      await createCustomRequest(
+        CustomRequestModel(
+          requestId: '',
+          customerId: sellerId,
+          shopId: shopId,
+          designerId: designerId,
+          type: 'ar_model',
+          productId: productId,
+          description:
+              'Generate a 3D model (.glb) for AR preview and upload it for: $productName',
+          status: 'pending',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[FirestoreService] ensureArModelTaskForProduct error: $e');
+      rethrow;
+    }
+  }
+
   Stream<List<CustomRequestModel>> watchCustomRequestsForCustomer(
     String customerId,
   ) {
     return _db
         .collection(FirestorePaths.customRequests)
         .where('customerId', isEqualTo: customerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort locally to avoid composite index requirement.
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<List<CustomRequestModel>> watchCustomRequestsForShop(String shopId) {
     return _db
         .collection(FirestorePaths.customRequests)
         .where('shopId', isEqualTo: shopId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<List<CustomRequestModel>> watchCustomRequestsForDesigner(
@@ -1007,11 +1093,14 @@ class FirestoreService {
     return _db
         .collection(FirestorePaths.customRequests)
         .where('designerId', isEqualTo: designerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => CustomRequestModel.fromMap(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<CustomRequestModel> watchCustomRequestById(String requestId) {
@@ -1043,7 +1132,9 @@ class FirestoreService {
       if (shopId != null) {
         updates['shopId'] = shopId;
       }
-      await _db.doc('${FirestorePaths.customRequests}/$requestId').update(updates);
+      await _db
+          .doc('${FirestorePaths.customRequests}/$requestId')
+          .update(updates);
     } catch (e) {
       debugPrint('[FirestoreService] updateCustomRequestStatus error: $e');
       rethrow;
@@ -1072,13 +1163,17 @@ class FirestoreService {
         .collection(FirestorePaths.messagesCollection(requestId))
         .orderBy('sentAt', descending: false)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => CustomRequestMessageModel.fromMap(
+        .map(
+          (snap) => snap.docs
+              .map(
+                (doc) => CustomRequestMessageModel.fromMap(
                   doc.data(),
                   doc.id,
                   requestId,
-                ))
-            .toList());
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<List<ShopModel>> suggestShopsForInquiry({

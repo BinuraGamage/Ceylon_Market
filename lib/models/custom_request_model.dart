@@ -8,14 +8,15 @@ class CustomRequestModel extends Equatable {
   final String customerId;
   final String? shopId; // seller target, may be null when pending matching
   final String? designerId;
-  final String type; // 'customization' | 'inquiry'
+  final String type; // 'customization' | 'inquiry' | 'ar_model'
   final String? productId;
   final String? selectedColor;
   final String? selectedSize;
   final String? selectedMaterial;
   final String description;
   final String? imageUrl;
-  final String status; // 'pending' | 'assigned' | 'in_progress' | 'completed' | 'rejected'
+  final String
+  status; // 'pending' | 'assigned' | 'in_progress' | 'completed' | 'rejected'
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -56,20 +57,20 @@ class CustomRequestModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'customerId': customerId,
-        if (shopId != null) 'shopId': shopId,
-        if (designerId != null) 'designerId': designerId,
-        'type': type,
-        if (productId != null) 'productId': productId,
-        if (selectedColor != null) 'selectedColor': selectedColor,
-        if (selectedSize != null) 'selectedSize': selectedSize,
-        if (selectedMaterial != null) 'selectedMaterial': selectedMaterial,
-        'description': description,
-        if (imageUrl != null) 'imageUrl': imageUrl,
-        'status': status,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': Timestamp.fromDate(updatedAt),
-      };
+    'customerId': customerId,
+    if (shopId != null) 'shopId': shopId,
+    if (designerId != null) 'designerId': designerId,
+    'type': type,
+    if (productId != null) 'productId': productId,
+    if (selectedColor != null) 'selectedColor': selectedColor,
+    if (selectedSize != null) 'selectedSize': selectedSize,
+    if (selectedMaterial != null) 'selectedMaterial': selectedMaterial,
+    'description': description,
+    if (imageUrl != null) 'imageUrl': imageUrl,
+    'status': status,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'updatedAt': Timestamp.fromDate(updatedAt),
+  };
 
   CustomRequestModel copyWith({
     String? requestId,
@@ -107,19 +108,19 @@ class CustomRequestModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        requestId,
-        customerId,
-        shopId,
-        designerId,
-        type,
-        status,
-        productId,
-        selectedColor,
-        selectedSize,
-        selectedMaterial,
-        description,
-        imageUrl,
-        createdAt,
-        updatedAt,
-      ];
+    requestId,
+    customerId,
+    shopId,
+    designerId,
+    type,
+    status,
+    productId,
+    selectedColor,
+    selectedSize,
+    selectedMaterial,
+    description,
+    imageUrl,
+    createdAt,
+    updatedAt,
+  ];
 }
