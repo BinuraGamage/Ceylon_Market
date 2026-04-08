@@ -227,11 +227,13 @@ class _SearchBar extends StatelessWidget {
 
 // ── Category Chips ───────────────────────────────────────────────────────────
 
-class _CategoryChips extends StatelessWidget {
+class _CategoryChips extends ConsumerWidget {
   const _CategoryChips();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedCategory = ref.watch(homeSelectedCategoryProvider);
+
     return SizedBox(
       height: 44,
       child: ListView.separated(
@@ -243,23 +245,19 @@ class _CategoryChips extends StatelessWidget {
           final isAll = index == 0;
           final category = isAll ? '' : ProductCategory.all[index - 1];
           final label = isAll ? 'All' : ProductCategory.label(category);
+          final isSelected = selectedCategory == category;
 
           return GestureDetector(
             onTap: () {
-              if (category.isNotEmpty) {
-                context.pushNamed(
-                  'category-browse',
-                  pathParameters: {'name': category},
-                );
-              }
+              ref.read(homeSelectedCategoryProvider.notifier).state = category;
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(
-                color: isAll ? AppColors.primary : AppColors.surface,
+                color: isSelected ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isAll ? AppColors.primary : AppColors.divider,
+                  color: isSelected ? AppColors.primary : AppColors.divider,
                 ),
               ),
               child: Text(
@@ -267,7 +265,7 @@ class _CategoryChips extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isAll
+                  color: isSelected
                       ? AppColors.textOnPrimary
                       : AppColors.textSecondary,
                 ),
