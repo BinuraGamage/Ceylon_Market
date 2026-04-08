@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'core/router/app_router.dart';
 import 'shared/themes/app_theme.dart';
+import 'shared/widgets/startup_splash_screen.dart';
 import 'services/fcm_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
@@ -18,7 +19,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const ProviderScope(child: SelaMarketApp()));
 }
@@ -31,17 +31,42 @@ class SelaMarketApp extends ConsumerStatefulWidget {
 }
 
 class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
-  late final ProviderSubscription<AsyncValue<User?>> _authListener;
-  late final ProviderSubscription<AsyncValue<List<NotificationModel>>>
+  ProviderSubscription<AsyncValue<User?>>? _authListener;
+  ProviderSubscription<AsyncValue<List<NotificationModel>>>?
   _notificationListener;
+  static const Duration _startupSplashDuration = Duration(seconds: 3);
   final Set<String> _seenNotificationIds = <String>{};
   bool _notificationsPrimed = false;
+  bool _minimumSplashElapsed = false;
+  bool _firebaseReady = false;
 
   @override
   void initState() {
     super.initState();
-    FcmService.instance.init();
+    _dismissSplashAfterDelay();
+    _initializeApp();
+  }
 
+  Future<void> _initializeApp() async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      await FcmService.instance.init();
+      _attachRuntimeListeners();
+
+      if (!mounted) return;
+      setState(() => _firebaseReady = true);
+    } catch (e) {
+      debugPrint('[main] Firebase init failed: $e');
+      if (!mounted) return;
+      // Let the app continue routing even if init has issues,
+      // instead of staying forever on a blank startup state.
+      setState(() => _firebaseReady = true);
+    }
+  }
+
+  void _attachRuntimeListeners() {
     _authListener = ref.listenManual<AsyncValue<User?>>(authStateProvider, (
       previous,
       next,
@@ -73,8 +98,9 @@ class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
               }
 
               for (final item in items) {
-                if (_seenNotificationIds.contains(item.notificationId))
+                if (_seenNotificationIds.contains(item.notificationId)) {
                   continue;
+                }
                 _seenNotificationIds.add(item.notificationId);
                 await FcmService.instance.showLocalNotification(
                   title: item.title,
@@ -86,15 +112,32 @@ class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
         );
   }
 
+  void _dismissSplashAfterDelay() {
+    Future<void>.delayed(_startupSplashDuration, () {
+      if (!mounted) return;
+      setState(() => _minimumSplashElapsed = true);
+    });
+  }
+
   @override
   void dispose() {
-    _authListener.close();
-    _notificationListener.close();
+    _authListener?.close();
+    _notificationListener?.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final showStartupSplash = !_minimumSplashElapsed || !_firebaseReady;
+    if (showStartupSplash) {
+      return MaterialApp(
+        title: 'Ceylon Marketplace',
+        theme: AppTheme.lightTheme,
+        home: const StartupSplashScreen(),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'Ceylon Marketplace',
