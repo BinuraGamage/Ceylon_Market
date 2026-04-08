@@ -21,7 +21,9 @@ final cartStreamProvider = StreamProvider<List<CartItemModel>>((ref) {
 
 // ── Cart Items with Product Details Provider ─────────────────────────────
 // Combines cart items with full product data
-final cartWithProductsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final cartWithProductsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final cartItems = ref.watch(cartStreamProvider).value ?? [];
   if (cartItems.isEmpty) return [];
 
@@ -31,10 +33,7 @@ final cartWithProductsProvider = FutureProvider<List<Map<String, dynamic>>>((ref
   for (final cartItem in cartItems) {
     try {
       final product = await firestore.getProduct(cartItem.productId);
-      results.add({
-        'cartItem': cartItem,
-        'product': product,
-      });
+      results.add({'cartItem': cartItem, 'product': product});
     } catch (e) {
       // Skip items with missing products
       continue;
@@ -80,17 +79,19 @@ class CartNotifier extends AsyncNotifier<void> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).addToCart(
-        uid: authState!.uid,
-        productId: productId,
-        shopId: shopId,
-        quantity: quantity,
-        selectedColor: selectedColor,
-        selectedSize: selectedSize,
-        selectedMaterial: selectedMaterial,
-        customNote: customNote,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(firestoreServiceProvider)
+          .addToCart(
+            uid: authState!.uid,
+            productId: productId,
+            shopId: shopId,
+            quantity: quantity,
+            selectedColor: selectedColor,
+            selectedSize: selectedSize,
+            selectedMaterial: selectedMaterial,
+            customNote: customNote,
+          ),
     );
   }
 
@@ -104,12 +105,14 @@ class CartNotifier extends AsyncNotifier<void> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).updateCartItemQuantity(
-        uid: authState!.uid,
-        cartItemId: cartItemId,
-        quantity: quantity,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(firestoreServiceProvider)
+          .updateCartItemQuantity(
+            uid: authState!.uid,
+            cartItemId: cartItemId,
+            quantity: quantity,
+          ),
     );
   }
 
@@ -120,11 +123,10 @@ class CartNotifier extends AsyncNotifier<void> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).removeFromCart(
-        uid: authState!.uid,
-        cartItemId: cartItemId,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(firestoreServiceProvider)
+          .removeFromCart(uid: authState!.uid, cartItemId: cartItemId),
     );
   }
 
@@ -135,10 +137,12 @@ class CartNotifier extends AsyncNotifier<void> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).clearCart(authState!.uid),
+    state = await AsyncValue.guard(
+      () => ref.read(firestoreServiceProvider).clearCart(authState!.uid),
     );
   }
 }
 
-final cartNotifierProvider = AsyncNotifierProvider<CartNotifier, void>(CartNotifier.new);
+final cartNotifierProvider = AsyncNotifierProvider<CartNotifier, void>(
+  CartNotifier.new,
+);

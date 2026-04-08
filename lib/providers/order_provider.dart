@@ -9,12 +9,15 @@ final userOrdersProvider = StreamProvider.autoDispose<List<OrderModel>>((ref) {
   if (authState.value?.uid == null) {
     return Stream.value([]);
   }
-  return ref.read(firestoreServiceProvider).watchUserOrders(authState.value!.uid);
+  return ref
+      .read(firestoreServiceProvider)
+      .watchUserOrders(authState.value!.uid);
 });
 
-final shopOrdersProviderOrder = StreamProvider.autoDispose.family<List<OrderModel>, String>((ref, shopId) {
-  return ref.read(firestoreServiceProvider).watchShopOrders(shopId);
-});
+final shopOrdersProviderOrder = StreamProvider.autoDispose
+    .family<List<OrderModel>, String>((ref, shopId) {
+      return ref.read(firestoreServiceProvider).watchShopOrders(shopId);
+    });
 
 // ── Order Notifier — handles order operations ────────────────────────────
 class OrderNotifier extends AsyncNotifier<void> {
@@ -23,8 +26,8 @@ class OrderNotifier extends AsyncNotifier<void> {
 
   Future<String> createOrder(OrderModel order) async {
     state = const AsyncLoading();
-    final result = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).createOrder(order),
+    final result = await AsyncValue.guard(
+      () => ref.read(firestoreServiceProvider).createOrder(order),
     );
     state = result;
     return result.value ?? '';
@@ -35,11 +38,10 @@ class OrderNotifier extends AsyncNotifier<void> {
     required String status,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).updateOrderStatus(
-        orderId: orderId,
-        status: status,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(firestoreServiceProvider)
+          .updateOrderStatus(orderId: orderId, status: status),
     );
   }
 
@@ -49,14 +51,18 @@ class OrderNotifier extends AsyncNotifier<void> {
     String? paymentRef,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() =>
-      ref.read(firestoreServiceProvider).updatePaymentStatus(
-        orderId: orderId,
-        paymentStatus: paymentStatus,
-        paymentRef: paymentRef,
-      ),
+    state = await AsyncValue.guard(
+      () => ref
+          .read(firestoreServiceProvider)
+          .updatePaymentStatus(
+            orderId: orderId,
+            paymentStatus: paymentStatus,
+            paymentRef: paymentRef,
+          ),
     );
   }
 }
 
-final orderNotifierProvider = AsyncNotifierProvider<OrderNotifier, void>(OrderNotifier.new);
+final orderNotifierProvider = AsyncNotifierProvider<OrderNotifier, void>(
+  OrderNotifier.new,
+);

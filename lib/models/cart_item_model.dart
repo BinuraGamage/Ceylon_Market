@@ -39,15 +39,15 @@ class CartItemModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'productId': productId,
-        'shopId': shopId,
-        'quantity': quantity,
-        if (selectedColor != null) 'selectedColor': selectedColor,
-        if (selectedSize != null) 'selectedSize': selectedSize,
-        if (selectedMaterial != null) 'selectedMaterial': selectedMaterial,
-        if (customNote != null) 'customNote': customNote,
-        'addedAt': Timestamp.fromDate(addedAt),
-      };
+    'productId': productId,
+    'shopId': shopId,
+    'quantity': quantity,
+    if (selectedColor != null) 'selectedColor': selectedColor,
+    if (selectedSize != null) 'selectedSize': selectedSize,
+    if (selectedMaterial != null) 'selectedMaterial': selectedMaterial,
+    if (customNote != null) 'customNote': customNote,
+    'addedAt': Timestamp.fromDate(addedAt),
+  };
 
   CartItemModel copyWith({
     String? cartItemId,
@@ -75,14 +75,14 @@ class CartItemModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        cartItemId,
-        productId,
-        shopId,
-        quantity,
-        selectedColor,
-        selectedSize,
-        selectedMaterial,
-        customNote,
-        addedAt,
-      ];
+    cartItemId,
+    productId,
+    shopId,
+    quantity,
+    selectedColor,
+    selectedSize,
+    selectedMaterial,
+    customNote,
+    addedAt,
+  ];
 }

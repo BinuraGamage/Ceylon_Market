@@ -45,17 +45,17 @@ class PromoCodeModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'code': code,
-        'type': type,
-        'value': value,
-        if (minOrderValue != null) 'minOrderValue': minOrderValue,
-        if (maxDiscount != null) 'maxDiscount': maxDiscount,
-        if (expiryDate != null) 'expiryDate': Timestamp.fromDate(expiryDate!),
-        if (usageLimit != null) 'usageLimit': usageLimit,
-        'usageCount': usageCount,
-        'isActive': isActive,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
+    'code': code,
+    'type': type,
+    'value': value,
+    if (minOrderValue != null) 'minOrderValue': minOrderValue,
+    if (maxDiscount != null) 'maxDiscount': maxDiscount,
+    if (expiryDate != null) 'expiryDate': Timestamp.fromDate(expiryDate!),
+    if (usageLimit != null) 'usageLimit': usageLimit,
+    'usageCount': usageCount,
+    'isActive': isActive,
+    'createdAt': Timestamp.fromDate(createdAt),
+  };
 
   bool get isValid {
     if (!isActive) return false;
@@ -72,7 +72,9 @@ class PromoCodeModel extends Equatable {
     switch (type) {
       case 'percentage':
         final discount = orderTotal * (value / 100);
-        return maxDiscount != null ? discount.clamp(0.0, maxDiscount!) : discount;
+        return maxDiscount != null
+            ? discount.clamp(0.0, maxDiscount!)
+            : discount;
       case 'fixed':
         return value.clamp(0.0, orderTotal);
       default:
@@ -110,16 +112,16 @@ class PromoCodeModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        promoId,
-        code,
-        type,
-        value,
-        minOrderValue,
-        maxDiscount,
-        expiryDate,
-        usageLimit,
-        usageCount,
-        isActive,
-        createdAt,
-      ];
+    promoId,
+    code,
+    type,
+    value,
+    minOrderValue,
+    maxDiscount,
+    expiryDate,
+    usageLimit,
+    usageCount,
+    isActive,
+    createdAt,
+  ];
 }
