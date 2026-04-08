@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,13 +8,12 @@ import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
-import '../../../shared/widgets/error_banner.dart';
-import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../models/shop_analytics_model.dart';
 import '../../../providers/shop_provider.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/loading_shimmer.dart';
 
 /// Selling Insights screen — analytics dashboard for the shop owner.
-/// M3 owns this file. Located at features/shop/screens/seller_insights_screen.dart
 class SellerInsightsScreen extends ConsumerWidget {
   const SellerInsightsScreen({super.key});
 
@@ -30,314 +31,470 @@ class SellerInsightsScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text('Selling Insights', style: AppTextStyles.heading1),
+        actions: [
+          TextButton.icon(
+            onPressed: () =>
+                context.pushNamed('seller-product-reviews-overview'),
+            icon: const Icon(Icons.reviews_outlined, color: AppColors.primary),
+            label: Text(
+              'Reviews',
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
       body: analyticsAsync.when(
-        loading: () => const Center(child: LoadingShimmer()),
-        error: (e, _) => Center(
+        loading: () =>
+            const Center(child: LoadingShimmer(height: 120, width: 220)),
+        error: (error, _) => Center(
           child: ErrorBanner(
-            message: e.toString(),
+            message: error.toString(),
             onRetry: () => ref.invalidate(shopAnalyticsProvider),
           ),
         ),
-        data: (analytics) => analytics.totalOrders == 0
-            ? _EmptyInsights()
-            : _InsightsContent(analytics: analytics),
+        data: (analytics) {
+          if (analytics.totalOrders == 0 && analytics.totalViews == 0) {
+            return const _EmptyInsights();
+          }
+          return _InsightsContent(analytics: analytics);
+        },
       ),
     );
   }
 }
 
-class _InsightsContent extends ConsumerWidget {
+enum _ProductInsightMetric { revenue, sales, views }
+
+class _InsightsContent extends StatefulWidget {
   const _InsightsContent({required this.analytics});
+
   final ShopAnalyticsModel analytics;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final range = ref.watch(analyticsRangeProvider);
+  State<_InsightsContent> createState() => _InsightsContentState();
+}
+
+class _InsightsContentState extends State<_InsightsContent> {
+  _ProductInsightMetric _selectedMetric = _ProductInsightMetric.revenue;
+  String? _selectedProductId;
+
+  List<TopProduct> _buildProducts() {
+    final merged = <String, TopProduct>{};
+    for (final product in [
+      ...widget.analytics.topProducts,
+      ...widget.analytics.lowProducts,
+    ]) {
+      merged[product.productId] = product;
+    }
+
+    final list = merged.values.toList()
+      ..sort((a, b) => _metricValue(b).compareTo(_metricValue(a)));
+
+    return list.take(8).toList();
+  }
+
+  double _metricValue(TopProduct product) {
+    switch (_selectedMetric) {
+      case _ProductInsightMetric.revenue:
+        return product.revenueLKR;
+      case _ProductInsightMetric.sales:
+        return product.sales.toDouble();
+      case _ProductInsightMetric.views:
+        return product.views.toDouble();
+    }
+  }
+
+  String _metricLabel(_ProductInsightMetric metric) {
+    switch (metric) {
+      case _ProductInsightMetric.revenue:
+        return 'Revenue';
+      case _ProductInsightMetric.sales:
+        return 'Sales';
+      case _ProductInsightMetric.views:
+        return 'Views';
+    }
+  }
+
+  String _formatHourRange(String hour) {
+    final parsed = int.tryParse(hour) ?? 0;
+    final next = (parsed + 1) % 24;
+    final start = parsed.toString().padLeft(2, '0');
+    final end = next.toString().padLeft(2, '0');
+    return '$start:00-$end:00';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final products = _buildProducts();
+    final selectedId =
+        _selectedProductId ??
+        (products.isEmpty ? null : products.first.productId);
+    final selectedProduct = selectedId == null
+        ? null
+        : products.firstWhere(
+            (product) => product.productId == selectedId,
+            orElse: () => products.first,
+          );
+
+    final conversionRate = widget.analytics.totalViews == 0
+        ? 0.0
+        : (widget.analytics.totalOrders / widget.analytics.totalViews) * 100;
+    final averageOrderValue = widget.analytics.totalOrders == 0
+        ? 0.0
+        : widget.analytics.totalRevenueLKR / widget.analytics.totalOrders;
+
+    final peakEntry = widget.analytics.customerBehavior.activeByHour.entries
+        .fold<MapEntry<String, int>?>(null, (currentPeak, entry) {
+          if (currentPeak == null || entry.value > currentPeak.value) {
+            return entry;
+          }
+          return currentPeak;
+        });
+
+    final peakHourRange = peakEntry == null
+        ? 'N/A'
+        : _formatHourRange(peakEntry.key);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── KPI Cards ─────────────────────────────────────────────
-          _KpiRow(analytics: analytics),
-          const SizedBox(height: 20),
-
-          // ── Sales Over Time Chart ─────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Sales Over Time (Last 7 Days)',
-                      style: AppTextStyles.label,
-                    ),
-                    // Weekly / Monthly toggle
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          _RangeToggle(
-                            label: 'Weekly',
-                            selected: range == 'weekly',
-                            onTap: () =>
-                                ref
-                                        .read(analyticsRangeProvider.notifier)
-                                        .state =
-                                    'weekly',
-                          ),
-                          _RangeToggle(
-                            label: 'Monthly',
-                            selected: range == 'monthly',
-                            onTap: () =>
-                                ref
-                                        .read(analyticsRangeProvider.notifier)
-                                        .state =
-                                    'monthly',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 160,
-                  child: _SalesLineChart(data: analytics.salesOverTime),
-                ),
-              ],
-            ),
+          _ExecutiveSummaryCard(
+            conversionRate: conversionRate,
+            averageOrderValue: averageOrderValue,
+            peakHourRange: peakHourRange,
           ),
-          const SizedBox(height: 16),
-
-          // ── Top & Low Performing Products ─────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _ProductListCard(
-                  title: 'Top Performing Products',
-                  products: analytics.topProducts,
-                  isTop: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ProductListCard(
-                  title: 'Low Performing Products',
-                  products: analytics.lowProducts,
-                  isTop: false,
-                ),
-              ),
-            ],
+          const SizedBox(height: 14),
+          _KpiGrid(analytics: widget.analytics),
+          const SizedBox(height: 14),
+          _SalesOverTimeCard(data: widget.analytics.salesOverTime),
+          const SizedBox(height: 14),
+          _ProductInsightsChartCard(
+            products: products,
+            selectedMetric: _selectedMetric,
+            selectedProductId: selectedId,
+            selectedProduct: selectedProduct,
+            metricLabel: _metricLabel(_selectedMetric),
+            metricValueOf: _metricValue,
+            onMetricChanged: (metric) {
+              setState(() {
+                _selectedMetric = metric;
+              });
+            },
+            onProductChanged: (productId) {
+              setState(() {
+                _selectedProductId = productId;
+              });
+            },
           ),
-          const SizedBox(height: 16),
-
-          // ── AI Insights ───────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('AI-Powered Insights', style: AppTextStyles.label),
-                const SizedBox(height: 10),
-                ...analytics.aiInsights.map(
-                  (insight) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '"$insight"',
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 14),
+          _CustomerActivityByTimeCard(
+            activeByHour: widget.analytics.customerBehavior.activeByHour,
           ),
-          const SizedBox(height: 16),
-
-          // ── Customer Behavior ─────────────────────────────────────
-          _CustomerBehaviorCard(behavior: analytics.customerBehavior),
-          const SizedBox(height: 32),
+          const SizedBox(height: 14),
+          _CustomerBehaviorSummaryCard(
+            behavior: widget.analytics.customerBehavior,
+          ),
+          const SizedBox(height: 14),
+          _AiInsightsCard(insights: widget.analytics.aiInsights),
+          const SizedBox(height: 26),
         ],
       ),
     );
   }
 }
 
-// ── KPI Row ────────────────────────────────────────────────────────────────
-
-class _KpiRow extends StatelessWidget {
-  const _KpiRow({required this.analytics});
-  final ShopAnalyticsModel analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _KpiCard(
-          icon: Icons.visibility_outlined,
-          label: 'Total Views',
-          value: '${analytics.totalViews}',
-          sub: 'Views',
-        ),
-        const SizedBox(width: 8),
-        _KpiCard(
-          icon: Icons.shopping_cart_outlined,
-          label: 'Total Orders',
-          value: '${analytics.totalOrders}',
-          sub: 'Orders',
-        ),
-        const SizedBox(width: 8),
-        _KpiCard(
-          icon: Icons.layers_outlined,
-          label: 'Total Revenue',
-          value: 'LKR ${_formatRevenue(analytics.totalRevenueLKR)}',
-          sub: 'Revenue',
-        ),
-        const SizedBox(width: 8),
-        _KpiCard(
-          icon: Icons.star_outline_rounded,
-          label: 'Avg Rating',
-          value: analytics.avgRating.toStringAsFixed(1),
-          sub: 'Rating',
-          iconColor: AppColors.starColor,
-        ),
-      ],
-    );
-  }
-
-  String _formatRevenue(double rev) {
-    if (rev >= 1000) {
-      return '${(rev / 1000).toStringAsFixed(0)}k';
-    }
-    return rev.toStringAsFixed(0);
-  }
-}
-
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.sub,
-    this.iconColor,
+class _ExecutiveSummaryCard extends StatelessWidget {
+  const _ExecutiveSummaryCard({
+    required this.conversionRate,
+    required this.averageOrderValue,
+    required this.peakHourRange,
   });
-  final IconData icon;
-  final String label;
-  final String value;
-  final String sub;
-  final Color? iconColor;
+
+  final double conversionRate;
+  final double averageOrderValue;
+  final String peakHourRange;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-        decoration: _cardDecoration(),
-        child: Column(
-          children: [
-            Icon(icon, size: 22, color: iconColor ?? AppColors.primary),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: AppTextStyles.label.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Business Snapshot', style: AppTextStyles.heading3),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _SummaryPill(
+                label: 'Conversion',
+                value: '${conversionRate.toStringAsFixed(1)}%',
+                icon: Icons.auto_graph_rounded,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              sub,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+              _SummaryPill(
+                label: 'Avg Order Value',
+                value: 'LKR ${averageOrderValue.toStringAsFixed(2)}',
+                icon: Icons.payments_outlined,
               ),
-            ),
-          ],
-        ),
+              _SummaryPill(
+                label: 'Peak Hour',
+                value: peakHourRange,
+                icon: Icons.schedule_rounded,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Sales Line Chart ───────────────────────────────────────────────────────
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            '$label: $value',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KpiGrid extends StatelessWidget {
+  const _KpiGrid({required this.analytics});
+
+  final ShopAnalyticsModel analytics;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      _KpiData(
+        icon: Icons.visibility_outlined,
+        label: 'Total Views',
+        value: '${analytics.totalViews}',
+      ),
+      _KpiData(
+        icon: Icons.shopping_cart_outlined,
+        label: 'Total Orders',
+        value: '${analytics.totalOrders}',
+      ),
+      _KpiData(
+        icon: Icons.currency_exchange_outlined,
+        label: 'Revenue',
+        value: 'LKR ${analytics.totalRevenueLKR.toStringAsFixed(2)}',
+      ),
+      _KpiData(
+        icon: Icons.star_outline_rounded,
+        label: 'Avg Rating',
+        value: analytics.avgRating.toStringAsFixed(1),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final card in cards)
+              SizedBox(
+                width: cardWidth,
+                child: _KpiCard(data: card),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _KpiData {
+  const _KpiData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class _KpiCard extends StatelessWidget {
+  const _KpiCard({required this.data});
+
+  final _KpiData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(data.icon, size: 20, color: AppColors.primary),
+          const SizedBox(height: 6),
+          Text(data.label, style: AppTextStyles.caption),
+          const SizedBox(height: 4),
+          Text(
+            data.value,
+            style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SalesOverTimeCard extends StatelessWidget {
+  const _SalesOverTimeCard({required this.data});
+
+  final List<DailySales> data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Revenue Trend (Last 7 Days)', style: AppTextStyles.heading3),
+          const SizedBox(height: 2),
+          Text(
+            'Track daily performance and revenue momentum.',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(height: 180, child: _SalesLineChart(data: data)),
+        ],
+      ),
+    );
+  }
+}
 
 class _SalesLineChart extends StatelessWidget {
   const _SalesLineChart({required this.data});
+
   final List<DailySales> data;
 
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) {
-      return const Center(child: Text('No sales data'));
+      return Center(
+        child: Text(
+          'No sales data yet.',
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+      );
     }
 
-    final spots = data.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), e.value.revenueLKR);
-    }).toList();
+    final spots = data
+        .asMap()
+        .entries
+        .map((entry) => FlSpot(entry.key.toDouble(), entry.value.revenueLKR))
+        .toList();
 
-    final maxY = data.map((d) => d.revenueLKR).reduce((a, b) => a > b ? a : b);
+    final maxY = data
+        .map((item) => item.revenueLKR)
+        .fold<double>(0, (currentMax, next) => math.max(currentMax, next));
 
     return LineChart(
       LineChartData(
         minY: 0,
-        maxY: maxY * 1.2,
+        maxY: maxY <= 0 ? 1 : maxY * 1.2,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) =>
+          getDrawingHorizontalLine: (value) =>
               FlLine(color: AppColors.border, strokeWidth: 0.8),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 48,
-              getTitlesWidget: (value, _) => Text(
+              reservedSize: 46,
+              getTitlesWidget: (value, meta) => Text(
                 'LKR ${(value / 1000).toStringAsFixed(0)}k',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 9,
-                ),
+                style: AppTextStyles.caption.copyWith(fontSize: 9),
               ),
             ),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: (value, _) {
-                final idx = value.toInt();
-                if (idx < 0 || idx >= data.length) return const SizedBox();
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= data.length) {
+                  return const SizedBox.shrink();
+                }
                 return Text(
-                  DateFormat('MMM d').format(data[idx].date),
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 9,
-                  ),
+                  DateFormat('MMM d').format(data[index].date),
+                  style: AppTextStyles.caption.copyWith(fontSize: 9),
                 );
               },
             ),
           ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+        ),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (spots) {
+              return spots
+                  .map(
+                    (spot) => LineTooltipItem(
+                      'LKR ${spot.y.toStringAsFixed(2)}',
+                      AppTextStyles.caption.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                  .toList();
+            },
           ),
         ),
         lineBarsData: [
@@ -349,7 +506,7 @@ class _SalesLineChart extends StatelessWidget {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: AppColors.primary.withOpacity(0.12),
+              color: AppColors.primary.withValues(alpha: 0.12),
             ),
           ),
         ],
@@ -358,213 +515,489 @@ class _SalesLineChart extends StatelessWidget {
   }
 }
 
-// ── Product List Cards ─────────────────────────────────────────────────────
-
-class _ProductListCard extends StatelessWidget {
-  const _ProductListCard({
-    required this.title,
+class _ProductInsightsChartCard extends StatelessWidget {
+  const _ProductInsightsChartCard({
     required this.products,
-    required this.isTop,
+    required this.selectedMetric,
+    required this.selectedProductId,
+    required this.selectedProduct,
+    required this.metricLabel,
+    required this.metricValueOf,
+    required this.onMetricChanged,
+    required this.onProductChanged,
   });
-  final String title;
+
   final List<TopProduct> products;
-  final bool isTop;
+  final _ProductInsightMetric selectedMetric;
+  final String? selectedProductId;
+  final TopProduct? selectedProduct;
+  final String metricLabel;
+  final double Function(TopProduct) metricValueOf;
+  final ValueChanged<_ProductInsightMetric> onMetricChanged;
+  final ValueChanged<String> onProductChanged;
+
+  String _shortLabel(String name) {
+    if (name.length <= 8) return name;
+    return '${name.substring(0, 8)}...';
+  }
+
+  String _metricDisplay(double value) {
+    switch (selectedMetric) {
+      case _ProductInsightMetric.revenue:
+        return 'LKR ${value.toStringAsFixed(2)}';
+      case _ProductInsightMetric.sales:
+      case _ProductInsightMetric.views:
+        return value.toStringAsFixed(0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.label),
+          Text('Product Insights Comparison', style: AppTextStyles.heading3),
+          const SizedBox(height: 2),
+          Text(
+            'Compare multiple products by revenue, sales, or views and inspect each product individually.',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final metric in _ProductInsightMetric.values)
+                ChoiceChip(
+                  label: Text(switch (metric) {
+                    _ProductInsightMetric.revenue => 'Revenue',
+                    _ProductInsightMetric.sales => 'Sales',
+                    _ProductInsightMetric.views => 'Views',
+                  }),
+                  selected: selectedMetric == metric,
+                  onSelected: (_) => onMetricChanged(metric),
+                  selectedColor: AppColors.primary,
+                  labelStyle: AppTextStyles.caption.copyWith(
+                    color: selectedMetric == metric
+                        ? AppColors.textOnPrimary
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  side: BorderSide(
+                    color: selectedMetric == metric
+                        ? AppColors.primary
+                        : AppColors.border,
+                  ),
+                  backgroundColor: AppColors.surface,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
           if (products.isEmpty)
             Text(
-              'None',
-              style: AppTextStyles.caption.copyWith(
+              'No product analytics available yet.',
+              style: AppTextStyles.body.copyWith(
                 color: AppColors.textSecondary,
               ),
             )
-          else
-            ...products.map(
-              (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _MiniProductRow(product: p, isTop: isTop),
+          else ...[
+            SizedBox(
+              height: 200,
+              child: _ProductBarChart(
+                products: products,
+                selectedProductId: selectedProductId,
+                metricValueOf: metricValueOf,
+                metricDisplay: _metricDisplay,
+                shortLabel: _shortLabel,
+                onProductChanged: onProductChanged,
               ),
             ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final product in products)
+                  GestureDetector(
+                    onTap: () => onProductChanged(product.productId),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selectedProductId == product.productId
+                            ? AppColors.primary
+                            : AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _shortLabel(product.name),
+                        style: AppTextStyles.caption.copyWith(
+                          color: selectedProductId == product.productId
+                              ? AppColors.textOnPrimary
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (selectedProduct != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedProduct!.name,
+                      style: AppTextStyles.heading3.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _DetailMetric(
+                          label: metricLabel,
+                          value: _metricDisplay(
+                            metricValueOf(selectedProduct!),
+                          ),
+                        ),
+                        _DetailMetric(
+                          label: 'Sales',
+                          value: '${selectedProduct!.sales}',
+                        ),
+                        _DetailMetric(
+                          label: 'Views',
+                          value: '${selectedProduct!.views}',
+                        ),
+                        _DetailMetric(
+                          label: 'Revenue',
+                          value:
+                              'LKR ${selectedProduct!.revenueLKR.toStringAsFixed(2)}',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
   }
 }
 
-class _MiniProductRow extends StatelessWidget {
-  const _MiniProductRow({required this.product, required this.isTop});
-  final TopProduct product;
-  final bool isTop;
+class _ProductBarChart extends StatelessWidget {
+  const _ProductBarChart({
+    required this.products,
+    required this.selectedProductId,
+    required this.metricValueOf,
+    required this.metricDisplay,
+    required this.shortLabel,
+    required this.onProductChanged,
+  });
+
+  final List<TopProduct> products;
+  final String? selectedProductId;
+  final double Function(TopProduct) metricValueOf;
+  final String Function(double value) metricDisplay;
+  final String Function(String name) shortLabel;
+  final ValueChanged<String> onProductChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final maxValue = products
+        .map(metricValueOf)
+        .fold<double>(0, (currentMax, next) => math.max(currentMax, next));
+
+    return BarChart(
+      BarChartData(
+        maxY: maxValue <= 0 ? 1 : maxValue * 1.2,
+        minY: 0,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: AppColors.border, strokeWidth: 0.8),
+        ),
+        borderData: FlBorderData(show: false),
+        alignment: BarChartAlignment.spaceAround,
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 46,
+              getTitlesWidget: (value, meta) => Text(
+                value.toStringAsFixed(0),
+                style: AppTextStyles.caption.copyWith(fontSize: 9),
+              ),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= products.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    shortLabel(products[index].name),
+                    style: AppTextStyles.caption.copyWith(fontSize: 9),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final product = products[groupIndex];
+              return BarTooltipItem(
+                '${product.name}\n${metricDisplay(metricValueOf(product))}',
+                AppTextStyles.caption.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
+          ),
+          touchCallback: (event, response) {
+            final groupIndex = response?.spot?.touchedBarGroupIndex;
+            if (groupIndex == null || groupIndex >= products.length) {
+              return;
+            }
+            if (event.isInterestedForInteractions) {
+              onProductChanged(products[groupIndex].productId);
+            }
+          },
+        ),
+        barGroups: List.generate(products.length, (index) {
+          final product = products[index];
+          final isSelected = selectedProductId == product.productId;
+          return BarChartGroupData(
+            x: index,
+            showingTooltipIndicators: isSelected ? [0] : const [],
+            barRods: [
+              BarChartRodData(
+                toY: metricValueOf(product),
+                width: 16,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.primaryContainer,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _DetailMetric extends StatelessWidget {
+  const _DetailMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: product.thumbnailUrl != null
-              ? Image.network(
-                  product.thumbnailUrl!,
-                  width: 36,
-                  height: 36,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Container(width: 36, height: 36, color: AppColors.border),
-                )
-              : Container(
-                  width: 36,
-                  height: 36,
-                  color: AppColors.border,
-                  child: const Icon(Icons.image_outlined, size: 16),
-                ),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      product.name,
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (product.hasWarning)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4),
-                      child: Text('⚠️', style: TextStyle(fontSize: 11)),
-                    ),
-                ],
-              ),
-              if (isTop)
-                Text(
-                  'LKR ${product.revenueLKR.toStringAsFixed(0)} Revenue\n(${product.sales} sales)',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
-                  ),
-                )
-              else
-                Text(
-                  '${product.views} views, ${product.sales} sales\n– Low Conversion',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
-                  ),
-                ),
-            ],
-          ),
+        Text(
+          value,
+          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
   }
 }
 
-// ── Customer Behavior Card ─────────────────────────────────────────────────
+class _CustomerActivityByTimeCard extends StatelessWidget {
+  const _CustomerActivityByTimeCard({required this.activeByHour});
 
-class _CustomerBehaviorCard extends StatelessWidget {
-  const _CustomerBehaviorCard({required this.behavior});
-  final CustomerBehavior behavior;
+  final Map<String, int> activeByHour;
+
+  String _formatHour(int hour) => hour.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
-    final hourEntries = List.generate(24, (h) {
-      return MapEntry(h, behavior.activeByHour[h] ?? 0);
+    final points = List.generate(
+      24,
+      (hour) => MapEntry(hour, activeByHour['$hour'] ?? 0),
+    );
+
+    final peak = points.fold<MapEntry<int, int>?>(null, (currentPeak, point) {
+      if (currentPeak == null || point.value > currentPeak.value) {
+        return point;
+      }
+      return currentPeak;
     });
-    final maxCount = hourEntries
-        .map((e) => e.value)
-        .reduce((a, b) => a > b ? a : b);
+
+    final maxCount = points
+        .map((point) => point.value)
+        .fold<int>(0, (currentMax, next) => math.max(currentMax, next));
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Customer Behavior Insights', style: AppTextStyles.label),
-          const SizedBox(height: 12),
-
-          // Active hours bar chart (simplified)
+          Text('Customer Activity by Time', style: AppTextStyles.heading3),
+          const SizedBox(height: 2),
           Text(
-            'Most Active Time:',
+            'Hourly order activity throughout the day.',
             style: AppTextStyles.caption.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 60,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: hourEntries
-                  .where((e) => e.key % 3 == 0) // Show every 3rd hour
-                  .map((e) {
-                    final ratio = maxCount > 0 ? e.value / maxCount : 0.0;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              height: 50 * ratio + 4,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(
-                                  0.7 + 0.3 * ratio,
-                                ),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${e.key}',
-                              style: AppTextStyles.caption.copyWith(
-                                fontSize: 8,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+            height: 190,
+            child: BarChart(
+              BarChartData(
+                minY: 0,
+                maxY: maxCount <= 0 ? 1 : maxCount * 1.2,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) =>
+                      FlLine(color: AppColors.border, strokeWidth: 0.8),
+                ),
+                borderData: FlBorderData(show: false),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final hour = points[groupIndex].key;
+                      return BarTooltipItem(
+                        '${_formatHour(hour)}:00-${_formatHour((hour + 1) % 24)}:00\n${points[groupIndex].value} orders',
+                        AppTextStyles.caption.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
                         ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 34,
+                      getTitlesWidget: (value, meta) => Text(
+                        value.toInt().toString(),
+                        style: AppTextStyles.caption.copyWith(fontSize: 9),
                       ),
-                    );
-                  })
-                  .toList(),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final hour = value.toInt();
+                        if (hour < 0 || hour > 23 || hour % 3 != 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Text(
+                          _formatHour(hour),
+                          style: AppTextStyles.caption.copyWith(fontSize: 8),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: points
+                    .map(
+                      (point) => BarChartGroupData(
+                        x: point.key,
+                        barRods: [
+                          BarChartRodData(
+                            toY: point.value.toDouble(),
+                            width: 6,
+                            borderRadius: BorderRadius.circular(4),
+                            color: peak != null && peak.key == point.key
+                                ? AppColors.primary
+                                : AppColors.primaryContainer,
+                          ),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
-          const SizedBox(height: 14),
-
-          // Top category
-          Row(
-            children: [
-              Text(
-                'Top Viewed Category:',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _CategoryBadge(category: behavior.topViewedCategory),
-            ],
+          const SizedBox(height: 10),
+          Text(
+            peak == null || peak.value == 0
+                ? 'No peak activity hour available yet.'
+                : 'Peak customer activity: ${_formatHour(peak.key)}:00-${_formatHour((peak.key + 1) % 24)}:00 (${peak.value} orders)',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 14),
+        ],
+      ),
+    );
+  }
+}
 
-          // Repeat customer rate
+class _CustomerBehaviorSummaryCard extends StatelessWidget {
+  const _CustomerBehaviorSummaryCard({required this.behavior});
+
+  final CustomerBehavior behavior;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Customer Behavior Summary', style: AppTextStyles.heading3),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -572,14 +1005,23 @@ class _CustomerBehaviorCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Repeat Customer Rate:',
+                      'Top viewed category',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _CategoryBadge(category: behavior.topViewedCategory),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Repeat customer rate',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${(behavior.repeatCustomerRate * 100).toStringAsFixed(0)}%',
+                      '${(behavior.repeatCustomerRate * 100).toStringAsFixed(1)}%',
                       style: AppTextStyles.heading2.copyWith(
                         color: AppColors.primary,
                       ),
@@ -587,27 +1029,26 @@ class _CustomerBehaviorCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Donut chart
               SizedBox(
-                width: 60,
-                height: 60,
+                width: 76,
+                height: 76,
                 child: PieChart(
                   PieChartData(
                     sections: [
                       PieChartSectionData(
                         value: behavior.repeatCustomerRate * 100,
                         color: AppColors.primary,
-                        radius: 10,
+                        radius: 11,
                         showTitle: false,
                       ),
                       PieChartSectionData(
                         value: (1 - behavior.repeatCustomerRate) * 100,
                         color: AppColors.border,
-                        radius: 10,
+                        radius: 11,
                         showTitle: false,
                       ),
                     ],
-                    centerSpaceRadius: 22,
+                    centerSpaceRadius: 26,
                     sectionsSpace: 2,
                   ),
                 ),
@@ -622,60 +1063,91 @@ class _CustomerBehaviorCard extends StatelessWidget {
 
 class _CategoryBadge extends StatelessWidget {
   const _CategoryBadge({required this.category});
+
   final String category;
 
   @override
   Widget build(BuildContext context) {
+    final displayCategory = category.trim().isEmpty
+        ? 'N/A'
+        : category[0].toUpperCase() + category.substring(1);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.12),
+        color: AppColors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        category[0].toUpperCase() + category.substring(1),
+        displayCategory,
         style: AppTextStyles.caption.copyWith(
           color: AppColors.primary,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _RangeToggle extends StatelessWidget {
-  const _RangeToggle({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+class _AiInsightsCard extends StatelessWidget {
+  const _AiInsightsCard({required this.insights});
+
+  final List<String> insights;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            color: selected ? AppColors.textOnPrimary : AppColors.textSecondary,
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Actionable Suggestions', style: AppTextStyles.heading3),
+          const SizedBox(height: 10),
+          if (insights.isEmpty)
+            Text(
+              'No suggestions available yet.',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            )
+          else
+            ...insights.map(
+              (insight) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: AppColors.primary,
+                        size: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        insight,
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
 class _EmptyInsights extends StatelessWidget {
+  const _EmptyInsights();
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -691,16 +1163,15 @@ class _EmptyInsights extends StatelessWidget {
           Text('No insights yet', style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           Text(
-            'Start selling to see your analytics here.',
+            'Start selling to unlock professional analytics dashboards.',
             style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 }
-
-// ── Shared decoration helper ───────────────────────────────────────────────
 
 BoxDecoration _cardDecoration() => BoxDecoration(
   color: AppColors.surface,

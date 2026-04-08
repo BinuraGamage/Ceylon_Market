@@ -56,7 +56,7 @@ final orderSummaryProvider = StreamProvider<Map<String, int>>((ref) {
     },
     loading: () =>
         Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
-    error: (_, __) =>
+    error: (error, stackTrace) =>
         Stream.value({'all': 0, 'pending': 0, 'shipped': 0, 'cancelled': 0}),
   );
 });
@@ -77,7 +77,7 @@ final shopOrdersProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
           .watchShopOrders(shop.shopId, statusFilter: filter);
     },
     loading: () => Stream.value([]),
-    error: (_, __) => Stream.value([]),
+    error: (error, stackTrace) => Stream.value([]),
   );
 });
 
@@ -125,6 +125,7 @@ class SellerRegistrationNotifier extends Notifier<SellerRegistrationState> {
     required String shopName,
     required String story,
     required List<String> categories,
+    required GeoPoint location,
     required String address,
     required String city,
     required String? contactPhone,
@@ -147,7 +148,7 @@ class SellerRegistrationNotifier extends Notifier<SellerRegistrationState> {
               name: shopName,
               story: story,
               categories: categories,
-              location: const GeoPoint(6.9271, 79.8612), // Default: Colombo
+              location: location,
               address: address,
               city: city,
               contactPhone: contactPhone,

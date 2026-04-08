@@ -390,10 +390,7 @@ class ShopService {
         topProducts: topProducts,
         lowProducts: lowProducts,
         customerBehavior: CustomerBehavior(
-          activeByHour: activeByHour.map(
-            (k, v) =>
-                MapEntry(int.tryParse(k) ?? 0, v) as MapEntry<String, int>,
-          ),
+          activeByHour: activeByHour,
           topViewedCategory: topCategory,
           repeatCustomerRate: repeatRate,
         ),

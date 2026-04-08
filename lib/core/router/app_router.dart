@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/home/screens/customer_home_screen.dart';
+import '../../features/home/screens/shop_map_screen.dart';
 import '../../features/customization/screens/custom_inquiry_screen.dart';
 import '../../features/customization/screens/designer_dashboard_screen.dart';
 import '../../features/customization/screens/my_requests_screen.dart';
@@ -31,6 +32,7 @@ import '../../providers/auth_provider.dart';
 import '../../features/shop/screens/seller_register_screen.dart';
 import '../../features/shop/screens/seller_dashboard_screen.dart';
 import '../../features/shop/screens/seller_insights_screen.dart';
+import '../../features/shop/screens/seller_product_reviews_overview_screen.dart';
 import '../../features/shop/screens/store_room_screen.dart';
 
 class _RouterNotifier extends ChangeNotifier {
@@ -130,9 +132,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SellerInsightsScreen(),
       ),
       GoRoute(
+        name: 'seller-product-reviews-overview',
+        path: '/seller/reviews',
+        builder: (context, state) => const SellerProductReviewsOverviewScreen(),
+      ),
+      GoRoute(
         name: 'seller-products',
         path: '/seller/products',
         builder: (context, state) => const SellerProductsScreen(),
+      ),
+      GoRoute(
+        name: 'seller-custom-requests',
+        path: '/seller/custom-requests',
+        builder: (context, state) => const SellerCustomRequestsScreen(),
       ),
       GoRoute(
         name: 'seller-product-create',

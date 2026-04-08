@@ -37,6 +37,11 @@ final activeShopsProvider = FutureProvider<List<ShopModel>>((ref) {
   return ref.read(firestoreServiceProvider).getActiveShops();
 });
 
+/// Shops used by the customer map view.
+final shopMapShopsProvider = FutureProvider<List<ShopModel>>((ref) {
+  return ref.read(firestoreServiceProvider).getActiveShops(limit: 200);
+});
+
 /// Products for a specific shop row — keyed by shopId.
 final shopProductsProvider = FutureProvider.family<List<ProductModel>, String>((
   ref,

@@ -139,6 +139,11 @@ class _HomeAppBar extends ConsumerWidget {
           ),
 
           IconButton(
+            icon: const Icon(Icons.map_outlined, color: AppColors.textPrimary),
+            tooltip: 'Shops map',
+            onPressed: () => context.pushNamed('shops-map'),
+          ),
+          IconButton(
             icon: const Icon(
               Icons.search_rounded,
               color: AppColors.textPrimary,

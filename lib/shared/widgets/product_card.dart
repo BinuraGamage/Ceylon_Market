@@ -20,87 +20,96 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.pushNamed(
-        'product-detail',
-        pathParameters: {'id': product.productId},
-        extra: product.customizable
-            ? ProductCustomizationWidget(product: product)
-            : null,
-      ),
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 8,
-              offset: Offset(0, 2),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resolvedWidth = width.isFinite
+            ? width
+            : (constraints.maxWidth.isFinite ? constraints.maxWidth : 160.0);
+        final imageHeight = resolvedWidth * 0.85;
+
+        return GestureDetector(
+          onTap: () => context.pushNamed(
+            'product-detail',
+            pathParameters: {'id': product.productId},
+            extra: product.customizable
+                ? ProductCustomizationWidget(product: product)
+                : null,
+          ),
+          child: Container(
+            width: resolvedWidth,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Thumbnail ─────────────────────────────────────────────────
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: CachedNetworkImage(
-                imageUrl: product.thumbnailUrl,
-                height: width * 0.85,
-                width: width,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const LoadingShimmer(height: double.infinity),
-                errorWidget: (context, url, error) => Container(
-                  height: width * 0.85,
-                  color: AppColors.background,
-                  child: const Icon(
-                    Icons.broken_image_outlined,
-                    color: AppColors.textHint,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Thumbnail ───────────────────────────────────────────────
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: product.thumbnailUrl,
+                    height: imageHeight,
+                    width: resolvedWidth,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        const LoadingShimmer(height: double.infinity),
+                    errorWidget: (context, url, error) => Container(
+                      height: imageHeight,
+                      color: AppColors.background,
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        color: AppColors.textHint,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            // ── Info ──────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                // ── Info ────────────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        product.formattedPrice,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.priceColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _ShopLogoRow(shopId: product.shopId),
+                      const SizedBox(height: 6),
+                      _RatingRow(product: product),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product.formattedPrice,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.priceColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  _ShopLogoRow(shopId: product.shopId),
-                  const SizedBox(height: 6),
-                  _RatingRow(product: product),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

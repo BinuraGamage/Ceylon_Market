@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -37,6 +39,9 @@ class _SellerRegisterScreenState extends ConsumerState<SellerRegisterScreen> {
   final List<String> _selectedCategories = [];
   File? _logoFile;
   File? _bannerFile;
+  GeoPoint? _selectedLocation;
+  bool _isFetchingLocation = false;
+  String? _locationError;
 
   static const _allCategories = [
     'crafts',
@@ -82,11 +87,86 @@ class _SellerRegisterScreenState extends ConsumerState<SellerRegisterScreen> {
     }
   }
 
+  Future<void> _captureExactLocation() async {
+    if (_isFetchingLocation) return;
+
+    setState(() {
+      _isFetchingLocation = true;
+      _locationError = null;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _isFetchingLocation = false;
+          _locationError =
+              'Location services are disabled. Please enable GPS and try again.';
+        });
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        setState(() {
+          _isFetchingLocation = false;
+          _locationError =
+              'Location permission denied. We need it to place your shop on the map.';
+        });
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        setState(() {
+          _isFetchingLocation = false;
+          _locationError =
+              'Location permission is permanently denied. Please enable it from app settings.';
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _selectedLocation = GeoPoint(position.latitude, position.longitude);
+        _isFetchingLocation = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exact location captured successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isFetchingLocation = false;
+        _locationError = 'Failed to capture location: $e';
+      });
+    }
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedCategories.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select at least one category')),
+      );
+      return;
+    }
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please capture your exact shop location'),
+        ),
       );
       return;
     }
@@ -97,6 +177,7 @@ class _SellerRegisterScreenState extends ConsumerState<SellerRegisterScreen> {
           shopName: _shopNameController.text.trim(),
           story: _storyController.text.trim(),
           categories: List.from(_selectedCategories),
+          location: _selectedLocation!,
           address: _addressController.text.trim(),
           city: _cityController.text.trim(),
           contactPhone: _phoneController.text.trim().isEmpty
@@ -258,6 +339,71 @@ class _SellerRegisterScreenState extends ConsumerState<SellerRegisterScreen> {
                 label: 'City',
                 hint: 'e.g. Colombo',
                 validator: Validators.required,
+              ),
+              const SizedBox(height: 16),
+
+              Text('Exact Shop Location', style: AppTextStyles.label),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_selectedLocation != null) ...[
+                      Text(
+                        'Latitude: ${_selectedLocation!.latitude.toStringAsFixed(6)}',
+                        style: AppTextStyles.body,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Longitude: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
+                        style: AppTextStyles.body,
+                      ),
+                    ] else
+                      Text(
+                        'Capture your exact location so customers can find your shop on the map.',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                    if (_locationError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _locationError!,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _isFetchingLocation
+                          ? null
+                          : _captureExactLocation,
+                      icon: Icon(
+                        _isFetchingLocation
+                            ? Icons.hourglass_top_rounded
+                            : Icons.my_location_rounded,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(
+                        _isFetchingLocation
+                            ? 'Capturing location...'
+                            : (_selectedLocation == null
+                                  ? 'Use Current Location'
+                                  : 'Update Location'),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
 
