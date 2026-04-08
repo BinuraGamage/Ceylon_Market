@@ -26,24 +26,24 @@ class ShopAnalyticsModel extends Equatable {
   });
 
   factory ShopAnalyticsModel.empty() => ShopAnalyticsModel(
-        totalViews: 0,
-        totalOrders: 0,
-        totalRevenueLKR: 0,
-        avgRating: 0,
-        salesOverTime: const [],
-        topProducts: const [],
-        lowProducts: const [],
-        customerBehavior: CustomerBehavior.empty(),
-        aiInsights: const [],
-      );
+    totalViews: 0,
+    totalOrders: 0,
+    totalRevenueLKR: 0,
+    avgRating: 0,
+    salesOverTime: const [],
+    topProducts: const [],
+    lowProducts: const [],
+    customerBehavior: CustomerBehavior.empty(),
+    aiInsights: const [],
+  );
 
   @override
   List<Object?> get props => [
-        totalViews,
-        totalOrders,
-        totalRevenueLKR,
-        avgRating,
-      ];
+    totalViews,
+    totalOrders,
+    totalRevenueLKR,
+    avgRating,
+  ];
 }
 
 class DailySales extends Equatable {
@@ -91,10 +91,10 @@ class CustomerBehavior extends Equatable {
   });
 
   factory CustomerBehavior.empty() => const CustomerBehavior(
-        activeByHour: {},
-        topViewedCategory: '',
-        repeatCustomerRate: 0,
-      );
+    activeByHour: {},
+    topViewedCategory: '',
+    repeatCustomerRate: 0,
+  );
 
   @override
   List<Object?> get props => [topViewedCategory, repeatCustomerRate];

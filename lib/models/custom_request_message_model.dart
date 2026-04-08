@@ -18,7 +18,11 @@ class CustomRequestMessageModel extends Equatable {
     required this.sentAt,
   });
 
-  factory CustomRequestMessageModel.fromMap(Map<String, dynamic> map, String id, String requestId) {
+  factory CustomRequestMessageModel.fromMap(
+    Map<String, dynamic> map,
+    String id,
+    String requestId,
+  ) {
     return CustomRequestMessageModel(
       messageId: id,
       requestId: requestId,
@@ -30,11 +34,11 @@ class CustomRequestMessageModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'senderId': senderId,
-        'senderName': senderName,
-        'message': message,
-        'sentAt': Timestamp.fromDate(sentAt),
-      };
+    'senderId': senderId,
+    'senderName': senderName,
+    'message': message,
+    'sentAt': Timestamp.fromDate(sentAt),
+  };
 
   CustomRequestMessageModel copyWith({
     String? messageId,

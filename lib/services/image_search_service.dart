@@ -140,8 +140,10 @@ class ImageSearchService {
   /// Core Gemini multimodal API call. Returns matched Firestore tags.
   Future<List<String>> _sendToGemini(List<int> imageBytes) async {
     if (_geminiApiKey.isEmpty) {
-      debugPrint('[ImageSearchService] GEMINI_API_KEY not set — '
-          'build with --dart-define=GEMINI_API_KEY=xxx');
+      debugPrint(
+        '[ImageSearchService] GEMINI_API_KEY not set — '
+        'build with --dart-define=GEMINI_API_KEY=xxx',
+      );
       return [];
     }
 
@@ -165,10 +167,7 @@ class ImageSearchService {
           ],
         },
       ],
-      'generationConfig': {
-        'temperature': 0.2,
-        'maxOutputTokens': 200,
-      },
+      'generationConfig': {'temperature': 0.2, 'maxOutputTokens': 200},
     });
 
     final client = HttpClient();
@@ -199,7 +198,9 @@ class ImageSearchService {
       if (parts == null || parts.isEmpty) return [];
 
       final rawText = parts
-          .map((part) => (part as Map<String, dynamic>)['text'] as String? ?? '')
+          .map(
+            (part) => (part as Map<String, dynamic>)['text'] as String? ?? '',
+          )
           .join(' ')
           .trim();
 
@@ -280,20 +281,70 @@ class ImageSearchService {
   /// Aligned with M3's Cloudinary folder naming conventions.
   List<String> _mapLabelsToProductTags(List<String> modelLabels) {
     const tagMap = <String, List<String>>{
-      'crafts':    ['craft', 'handmade', 'artisan', 'wicker', 'cane', 'basket', 'weave', 'mat'],
-      'clothing':  ['clothing', 'dress', 'saree', 'garment', 'fashion', 'batik', 'textile', 'fabric'],
-      'furniture': ['furniture', 'chair', 'table', 'sofa', 'bed', 'desk', 'cabinet', 'shelf'],
-      'food':      ['food', 'cake', 'biscuit', 'snack', 'sweet', 'dessert', 'baked'],
-      'statues':   ['statue', 'figurine', 'sculpture', 'idol', 'buddha', 'deity'],
-      'clay':      ['pottery', 'clay', 'ceramic', 'terracotta', 'earthenware'],
-      'bottled':   ['bottle', 'jar', 'jam', 'pickle', 'achcharu', 'preserve', 'chutney'],
-      'metal':     ['metal', 'brass', 'copper', 'iron', 'bronze', 'metalwork', 'alloy'],
-      'paintings': ['painting', 'art', 'canvas', 'artwork', 'illustration', 'watercolour'],
+      'crafts': [
+        'craft',
+        'handmade',
+        'artisan',
+        'wicker',
+        'cane',
+        'basket',
+        'weave',
+        'mat',
+      ],
+      'clothing': [
+        'clothing',
+        'dress',
+        'saree',
+        'garment',
+        'fashion',
+        'batik',
+        'textile',
+        'fabric',
+      ],
+      'furniture': [
+        'furniture',
+        'chair',
+        'table',
+        'sofa',
+        'bed',
+        'desk',
+        'cabinet',
+        'shelf',
+      ],
+      'food': ['food', 'cake', 'biscuit', 'snack', 'sweet', 'dessert', 'baked'],
+      'statues': ['statue', 'figurine', 'sculpture', 'idol', 'buddha', 'deity'],
+      'clay': ['pottery', 'clay', 'ceramic', 'terracotta', 'earthenware'],
+      'bottled': [
+        'bottle',
+        'jar',
+        'jam',
+        'pickle',
+        'achcharu',
+        'preserve',
+        'chutney',
+      ],
+      'metal': [
+        'metal',
+        'brass',
+        'copper',
+        'iron',
+        'bronze',
+        'metalwork',
+        'alloy',
+      ],
+      'paintings': [
+        'painting',
+        'art',
+        'canvas',
+        'artwork',
+        'illustration',
+        'watercolour',
+      ],
       // Descriptive tags sellers commonly add
-      'wood':      ['wood', 'wooden', 'timber', 'ebony', 'teak', 'carving'],
-      'mask':      ['mask', 'face mask', 'devil mask', 'demon'],
-      'honey':     ['honey', 'beeswax', 'honeycomb', 'nectar'],
-      'lacquer':   ['lacquer', 'lacquerware', 'varnish'],
+      'wood': ['wood', 'wooden', 'timber', 'ebony', 'teak', 'carving'],
+      'mask': ['mask', 'face mask', 'devil mask', 'demon'],
+      'honey': ['honey', 'beeswax', 'honeycomb', 'nectar'],
+      'lacquer': ['lacquer', 'lacquerware', 'varnish'],
     };
 
     final matched = <String>{};

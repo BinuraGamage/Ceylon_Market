@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import '../../core/constants/firestore_paths.dart';
 import '../models/shop_model.dart';
 import '../models/shop_analytics_model.dart';
+import '../models/notification_model.dart';
+import 'firestore_service.dart';
 import 'cloudinary_service.dart';
 
 // NOTE: firebase_storage import removed — images now go through Cloudinary.
@@ -30,12 +32,44 @@ class ShopService {
     try {
       final shopId = _uuid.v4();
       await _db.collection(FirestorePaths.shops).doc(shopId).set(shop.toMap());
+
+      await _notifyAdminsForNewShop(shopId: shopId, shopName: shop.name);
       return shopId;
     } on FirebaseException catch (e) {
       debugPrint('[ShopService.createShop] FirebaseException: ${e.message}');
       rethrow;
     } catch (e) {
       debugPrint('[ShopService.createShop] Unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _notifyAdminsForNewShop({
+    required String shopId,
+    required String shopName,
+  }) async {
+    try {
+      final adminSnap = await _db
+          .collection(FirestorePaths.users)
+          .where('role', isEqualTo: 'admin')
+          .get();
+
+      for (final doc in adminSnap.docs) {
+        await FirestoreService.instance.createNotification(
+          NotificationModel(
+            notificationId: '',
+            recipientId: doc.id,
+            title: 'New shop pending approval',
+            body: '$shopName submitted by a seller.',
+            type: 'shop_created',
+            data: {'shopId': shopId},
+            isRead: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[ShopService] notifyAdminsForNewShop error: $e');
       rethrow;
     }
   }
