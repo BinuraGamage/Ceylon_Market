@@ -5,7 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/order_model.dart';
 import '../../../providers/order_provider.dart';
-import '../../../shared/widgets/app_button.dart' show AppButton, AppButtonVariant;
+import '../../../shared/widgets/app_button.dart'
+    show AppButton, AppButtonVariant;
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
@@ -21,9 +23,15 @@ class OrderDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Order Details'),
+        title: AppLogoTitle(
+          title: 'Order Details',
+          textStyle: AppTextStyles.heading2.copyWith(
+            color: AppColors.textOnPrimary,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
+        centerTitle: false,
       ),
       body: ordersAsync.when(
         loading: () => const Center(child: LoadingShimmer(height: 300)),
@@ -39,7 +47,7 @@ class OrderDetailScreen extends ConsumerWidget {
           return _OrderDetailView(order: order);
         },
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 }
@@ -62,14 +70,19 @@ class _OrderDetailView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Order #${order.orderId.substring(0, 8)}', style: AppTextStyles.heading3),
+                  Text(
+                    'Order #${order.orderId.substring(0, 8)}',
+                    style: AppTextStyles.heading3,
+                  ),
                   _StatusBadge(status: order.status),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 'Placed on ${_formatDate(order.createdAt)}',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.outline),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.outline,
+                ),
               ),
             ],
           ),
@@ -83,33 +96,45 @@ class _OrderDetailView extends StatelessWidget {
             children: [
               Text('Items', style: AppTextStyles.heading3),
               const SizedBox(height: 12),
-              ...order.items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item['name'] ?? 'Product', style: AppTextStyles.bodyLarge),
-                          if (item['selectedColor'] != null || item['selectedSize'] != null)
+              ...order.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              [item['selectedColor'], item['selectedSize']]
-                                  .where((e) => e != null)
-                                  .join(' • '),
-                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.outline),
+                              item['name'] ?? 'Product',
+                              style: AppTextStyles.bodyLarge,
                             ),
-                          Text('Qty: ${item['quantity']}', style: AppTextStyles.bodySmall),
-                        ],
+                            if (item['selectedColor'] != null ||
+                                item['selectedSize'] != null)
+                              Text(
+                                [
+                                  item['selectedColor'],
+                                  item['selectedSize'],
+                                ].where((e) => e != null).join(' • '),
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.outline,
+                                ),
+                              ),
+                            Text(
+                              'Qty: ${item['quantity']}',
+                              style: AppTextStyles.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(
-                      'LKR ${((item['price'] as num) * (item['quantity'] as int)).toStringAsFixed(2)}',
-                      style: AppTextStyles.bodyLarge,
-                    ),
-                  ],
+                      Text(
+                        'LKR ${((item['price'] as num) * (item['quantity'] as int)).toStringAsFixed(2)}',
+                        style: AppTextStyles.bodyLarge,
+                      ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
             ],
           ),
         ),
@@ -122,14 +147,22 @@ class _OrderDetailView extends StatelessWidget {
             children: [
               Text('Shipping Address', style: AppTextStyles.heading3),
               const SizedBox(height: 8),
-              Text(order.shippingAddress['line1'] ?? '', style: AppTextStyles.body),
+              Text(
+                order.shippingAddress['line1'] ?? '',
+                style: AppTextStyles.body,
+              ),
               if (order.shippingAddress['city'] != null)
                 Text(
                   '${order.shippingAddress['city']}${order.shippingAddress['district'] != null ? ', ${order.shippingAddress['district']}' : ''}',
                   style: AppTextStyles.body,
                 ),
               if (order.shippingAddress['postalCode'] != null)
-                Text('Postal Code: ${order.shippingAddress['postalCode']}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.outline)),
+                Text(
+                  'Postal Code: ${order.shippingAddress['postalCode']}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.outline,
+                  ),
+                ),
             ],
           ),
         ),
@@ -154,8 +187,13 @@ class _OrderDetailView extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Discount${order.promoCode != null ? ' (${order.promoCode})' : ''}'),
-                    Text('-LKR ${order.discountLKR.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green)),
+                    Text(
+                      'Discount${order.promoCode != null ? ' (${order.promoCode})' : ''}',
+                    ),
+                    Text(
+                      '-LKR ${order.discountLKR.toStringAsFixed(2)}',
+                      style: const TextStyle(color: Colors.green),
+                    ),
                   ],
                 ),
               ],
@@ -174,15 +212,23 @@ class _OrderDetailView extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    order.paymentStatus == 'paid' ? Icons.check_circle : Icons.pending,
-                    color: order.paymentStatus == 'paid' ? Colors.green : Colors.orange,
+                    order.paymentStatus == 'paid'
+                        ? Icons.check_circle
+                        : Icons.pending,
+                    color: order.paymentStatus == 'paid'
+                        ? Colors.green
+                        : Colors.orange,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    order.paymentStatus == 'paid' ? 'Payment Complete' : 'Awaiting Payment',
+                    order.paymentStatus == 'paid'
+                        ? 'Payment Complete'
+                        : 'Awaiting Payment',
                     style: AppTextStyles.body.copyWith(
-                      color: order.paymentStatus == 'paid' ? Colors.green : Colors.orange,
+                      color: order.paymentStatus == 'paid'
+                          ? Colors.green
+                          : Colors.orange,
                     ),
                   ),
                 ],
@@ -191,7 +237,9 @@ class _OrderDetailView extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Ref: ${order.paymentRef}',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.outline),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.outline,
+                  ),
                 ),
               ],
             ],
@@ -228,10 +276,7 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }

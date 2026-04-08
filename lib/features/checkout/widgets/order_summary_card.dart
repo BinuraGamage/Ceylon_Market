@@ -26,10 +26,7 @@ class OrderSummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Order Summary',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Order Summary', style: AppTextStyles.heading3),
             const SizedBox(height: 16),
 
             // Item list
@@ -63,10 +60,7 @@ class OrderSummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Subtotal',
-                  style: AppTextStyles.body,
-                ),
+                Text('Subtotal', style: AppTextStyles.body),
                 Text(
                   'LKR ${subtotal.toStringAsFixed(2)}',
                   style: AppTextStyles.body,
@@ -102,10 +96,7 @@ class OrderSummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Total',
-                  style: AppTextStyles.heading3,
-                ),
+                Text('Total', style: AppTextStyles.heading3),
                 Text(
                   'LKR ${total.toStringAsFixed(2)}',
                   style: AppTextStyles.price,

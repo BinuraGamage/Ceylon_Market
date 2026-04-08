@@ -6,18 +6,21 @@ import '../../../models/custom_request_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class MyRequestsScreen extends ConsumerWidget {
   const MyRequestsScreen({super.key});
 
   Widget _statusChip(String status) {
-    final color = {
-      'pending': AppColors.warning,
-      'assigned': AppColors.primary,
-      'in_progress': AppColors.info,
-      'completed': AppColors.success,
-      'rejected': AppColors.error,
-    }[status] ?? AppColors.textHint;
+    final color =
+        {
+          'pending': AppColors.warning,
+          'assigned': AppColors.primary,
+          'in_progress': AppColors.info,
+          'completed': AppColors.success,
+          'rejected': AppColors.error,
+        }[status] ??
+        AppColors.textHint;
 
     return Chip(
       label: Text(status.replaceAll('_', ' ')),
@@ -31,19 +34,20 @@ class MyRequestsScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider);
 
     if (currentUser == null) {
-      return const Scaffold(
-        body: Center(child: Text('Login required.')),
-      );
+      return const Scaffold(body: Center(child: Text('Login required.')));
     }
 
-    final requestsAsync = ref.watch(customerCustomRequestsProvider(currentUser.uid));
+    final requestsAsync = ref.watch(
+      customerCustomRequestsProvider(currentUser.uid),
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Custom Requests'),
+        title: const AppLogoTitle(title: 'My Custom Requests'),
         backgroundColor: AppColors.background,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: AppColors.background,
       body: requestsAsync.when(
@@ -73,10 +77,14 @@ class MyRequestsScreen extends ConsumerWidget {
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
-                        title: Text('${req.type} ${req.productId != null ? 'for ${req.productId}' : ''}'),
-                        subtitle: Text(req.description.isNotEmpty
-                            ? req.description
-                            : 'No description provided'),
+                        title: Text(
+                          '${req.type} ${req.productId != null ? 'for ${req.productId}' : ''}',
+                        ),
+                        subtitle: Text(
+                          req.description.isNotEmpty
+                              ? req.description
+                              : 'No description provided',
+                        ),
                         trailing: _statusChip(req.status),
                         onTap: () => context.pushNamed(
                           'custom-request-detail',
@@ -92,7 +100,7 @@ class MyRequestsScreen extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 }

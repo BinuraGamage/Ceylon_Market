@@ -12,6 +12,7 @@ import '../../../providers/product_provider.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 
@@ -180,7 +181,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           body: Center(child: LoadingShimmer(height: 120, width: 120)),
         ),
         error: (e, _) => Scaffold(
-          appBar: AppBar(title: const Text('Create Product')),
+          appBar: AppBar(
+            title: const AppLogoTitle(title: 'Create Product'),
+            centerTitle: false,
+          ),
           body: ErrorBanner(
             message: 'Error loading shop: ${e.toString()}',
             onRetry: () => ref.invalidate(myShopProvider),
@@ -191,8 +195,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             return Scaffold(
               backgroundColor: AppColors.background,
               appBar: AppBar(
-                title: const Text('Create Product'),
+                title: const AppLogoTitle(title: 'Create Product'),
                 backgroundColor: AppColors.background,
+                centerTitle: false,
               ),
               body: Center(
                 child: Padding(
@@ -200,10 +205,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.storefront_rounded,
-                        size: 50,
-                        color: AppColors.primary,
+                      Image.asset(
+                        'assets/icon.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 16),
                       const Text(
@@ -269,8 +275,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_isEdit ? 'Edit Product' : 'Create Product'),
+        title: AppLogoTitle(title: _isEdit ? 'Edit Product' : 'Create Product'),
         backgroundColor: AppColors.background,
+        centerTitle: false,
       ),
       body: Form(
         key: _formKey,

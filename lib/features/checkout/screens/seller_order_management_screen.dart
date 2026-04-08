@@ -6,6 +6,7 @@ import '../../../models/order_model.dart';
 import '../../../providers/order_provider.dart' as order_prov;
 import '../../../providers/shop_provider.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 
@@ -17,13 +18,10 @@ class SellerOrderManagementScreen extends ConsumerWidget {
     final shopAsync = ref.watch(myShopProvider);
 
     return shopAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(
-        body: ErrorBanner(
-          message: 'Failed to load shop: ${error.toString()}',
-        ),
+        body: ErrorBanner(message: 'Failed to load shop: ${error.toString()}'),
       ),
       data: (shop) {
         if (shop == null) {
@@ -34,13 +32,21 @@ class SellerOrderManagementScreen extends ConsumerWidget {
           );
         }
 
-        final ordersAsync = ref.watch(order_prov.shopOrdersProviderOrder(shop.shopId));
+        final ordersAsync = ref.watch(
+          order_prov.shopOrdersProviderOrder(shop.shopId),
+        );
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Order Management'),
+            title: AppLogoTitle(
+              title: 'Order Management',
+              textStyle: AppTextStyles.heading2.copyWith(
+                color: AppColors.textOnPrimary,
+              ),
+            ),
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.onPrimary,
+            centerTitle: false,
           ),
           body: ordersAsync.when(
             loading: () => const _OrdersLoadingView(),
@@ -82,16 +88,9 @@ class _EmptyOrdersView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: 80,
-            color: AppColors.outline,
-          ),
+          Icon(Icons.inventory_2_outlined, size: 80, color: AppColors.outline),
           const SizedBox(height: 16),
-          Text(
-            'No orders yet',
-            style: AppTextStyles.heading2,
-          ),
+          Text('No orders yet', style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           Text(
             'Orders from customers will appear here',
@@ -133,10 +132,7 @@ class _OrdersListView extends ConsumerWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({
-    required this.order,
-    required this.onStatusUpdate,
-  });
+  const _OrderCard({required this.order, required this.onStatusUpdate});
 
   final OrderModel order;
   final ValueChanged<String> onStatusUpdate;
@@ -178,7 +174,10 @@ class _OrderCard extends StatelessWidget {
                   style: AppTextStyles.body,
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -196,23 +195,25 @@ class _OrderCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Items
-            ...order.items.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item['name']} x${item['quantity']}',
+            ...order.items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item['name']} x${item['quantity']}',
+                        style: AppTextStyles.body,
+                      ),
+                    ),
+                    Text(
+                      'LKR ${(item['price'] * item['quantity']).toStringAsFixed(2)}',
                       style: AppTextStyles.body,
                     ),
-                  ),
-                  Text(
-                    'LKR ${(item['price'] * item['quantity']).toStringAsFixed(2)}',
-                    style: AppTextStyles.body,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
+            ),
 
             const Divider(height: 24),
 
@@ -220,10 +221,7 @@ class _OrderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Total',
-                  style: AppTextStyles.bodyLarge,
-                ),
+                Text('Total', style: AppTextStyles.bodyLarge),
                 Text(
                   'LKR ${order.totalLKR.toStringAsFixed(2)}',
                   style: AppTextStyles.price,
@@ -233,9 +231,7 @@ class _OrderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Shipping: ${order.shippingAddress['line1']}, ${order.shippingAddress['city']}',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.outline,
-              ),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.outline),
             ),
 
             // Status Update Actions

@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../providers/order_provider.dart';
-import '../../../shared/widgets/app_button.dart' show AppButton, AppButtonVariant;
+import '../../../shared/widgets/app_button.dart'
+    show AppButton, AppButtonVariant;
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
@@ -20,9 +22,15 @@ class OrderConfirmationScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Order Confirmation'),
+        title: AppLogoTitle(
+          title: 'Order Confirmation',
+          textStyle: AppTextStyles.heading2.copyWith(
+            color: AppColors.textOnPrimary,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
+        centerTitle: false,
       ),
       body: ordersAsync.when(
         loading: () => const _LoadingView(),
@@ -115,10 +123,7 @@ class _ConfirmationView extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Title
-            Text(
-              'Order Placed!',
-              style: AppTextStyles.heading1,
-            ),
+            Text('Order Placed!', style: AppTextStyles.heading1),
             const SizedBox(height: 8),
 
             Text(
@@ -138,10 +143,7 @@ class _ConfirmationView extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Order ID: ',
-                    style: AppTextStyles.body,
-                  ),
+                  Text('Order ID: ', style: AppTextStyles.body),
                   Text(
                     '#${orderId.substring(0, 8)}',
                     style: AppTextStyles.bodyLarge.copyWith(
@@ -170,9 +172,13 @@ class _ConfirmationView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                order.paymentStatus == 'paid' ? 'Payment Complete' : 'Awaiting Payment',
+                order.paymentStatus == 'paid'
+                    ? 'Payment Complete'
+                    : 'Awaiting Payment',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: order.paymentStatus == 'paid' ? Colors.green : Colors.orange,
+                  color: order.paymentStatus == 'paid'
+                      ? Colors.green
+                      : Colors.orange,
                   fontWeight: FontWeight.w600,
                 ),
               ),

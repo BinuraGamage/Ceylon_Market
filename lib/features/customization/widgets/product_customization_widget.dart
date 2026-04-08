@@ -33,8 +33,11 @@ class _ProductCustomizationWidgetState
   Future<void> _submitRequest() async {
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please log in to submit customization requests.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to submit customization requests.'),
+        ),
+      );
       return;
     }
 
@@ -61,10 +64,12 @@ class _ProductCustomizationWidgetState
           .submitCustomizationRequest(request: request);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Customization request sent to seller.'),
-          backgroundColor: AppColors.primary,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Customization request sent to seller.'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
       }
 
       setState(() {
@@ -75,10 +80,12 @@ class _ProductCustomizationWidgetState
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed to submit request: $e'),
-          backgroundColor: AppColors.error,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit request: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -141,7 +148,9 @@ class _ProductCustomizationWidgetState
             children: [
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitRequest,
-                child: Text(_isSubmitting ? 'Submitting...' : 'Request Customization'),
+                child: Text(
+                  _isSubmitting ? 'Submitting...' : 'Request Customization',
+                ),
               ),
               const SizedBox(width: 10),
               TextButton(
@@ -183,10 +192,10 @@ class _ProductCustomizationWidgetState
             isExpanded: true,
             items: [
               const DropdownMenuItem(value: null, child: Text('No preference')),
-              ...items.map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item.toString()),
-                  )),
+              ...items.map(
+                (item) =>
+                    DropdownMenuItem(value: item, child: Text(item.toString())),
+              ),
             ],
             onChanged: onChanged,
           ),

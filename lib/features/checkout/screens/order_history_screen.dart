@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/order_model.dart';
 import '../../../providers/order_provider.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
@@ -18,9 +19,15 @@ class OrderHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Orders'),
+        title: AppLogoTitle(
+          title: 'My Orders',
+          textStyle: AppTextStyles.heading2.copyWith(
+            color: AppColors.textOnPrimary,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
+        centerTitle: false,
       ),
       body: ordersAsync.when(
         loading: () => const _OrdersLoadingView(),
@@ -32,7 +39,7 @@ class OrderHistoryScreen extends ConsumerWidget {
             ? const _EmptyOrdersView()
             : _OrdersListView(orders: orders),
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 }
@@ -62,16 +69,9 @@ class _EmptyOrdersView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 80,
-            color: AppColors.outline,
-          ),
+          Icon(Icons.receipt_long_outlined, size: 80, color: AppColors.outline),
           const SizedBox(height: 16),
-          Text(
-            'No orders yet',
-            style: AppTextStyles.heading2,
-          ),
+          Text('No orders yet', style: AppTextStyles.heading2),
           const SizedBox(height: 8),
           Text(
             'Your order history will appear here',

@@ -8,6 +8,7 @@ import '../../../features/customization/widgets/product_customization_widget.dar
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class SellerProductsScreen extends ConsumerWidget {
   const SellerProductsScreen({super.key});
@@ -19,8 +20,12 @@ class SellerProductsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('My Products', style: AppTextStyles.heading2),
+        title: const AppLogoTitle(
+          title: 'My Products',
+          textStyle: AppTextStyles.heading2,
+        ),
         backgroundColor: AppColors.background,
+        centerTitle: false,
         actions: [
           IconButton(
             onPressed: () => context.pushNamed('seller-product-create'),

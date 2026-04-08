@@ -37,15 +37,13 @@ class CartItemCard extends StatelessWidget {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => const LoadingShimmer(width: 80, height: 80),
+                placeholder: (context, url) =>
+                    const LoadingShimmer(width: 80, height: 80),
                 errorWidget: (context, url, error) => Container(
                   width: 80,
                   height: 80,
                   color: AppColors.surfaceVariant,
-                  child: Icon(
-                    Icons.broken_image,
-                    color: AppColors.outline,
-                  ),
+                  child: Icon(Icons.broken_image, color: AppColors.outline),
                 ),
               ),
             ),
@@ -72,7 +70,8 @@ class CartItemCard extends StatelessWidget {
                     _SelectedOptions(cartItem: cartItem),
 
                   // Custom Note
-                  if (cartItem.customNote != null && cartItem.customNote!.isNotEmpty)
+                  if (cartItem.customNote != null &&
+                      cartItem.customNote!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
@@ -163,10 +162,7 @@ class _SelectedOptions extends StatelessWidget {
 }
 
 class _QuantityControls extends StatelessWidget {
-  const _QuantityControls({
-    required this.quantity,
-    required this.onChanged,
-  });
+  const _QuantityControls({required this.quantity, required this.onChanged});
 
   final int quantity;
   final ValueChanged<int> onChanged;
@@ -181,10 +177,7 @@ class _QuantityControls extends StatelessWidget {
           onPressed: quantity > 1 ? () => onChanged(quantity - 1) : null,
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(
-            width: 28,
-            height: 28,
-          ),
+          constraints: const BoxConstraints.tightFor(width: 28, height: 28),
           icon: Icon(
             Icons.remove,
             size: 16,
@@ -199,10 +192,7 @@ class _QuantityControls extends StatelessWidget {
             border: Border.all(color: AppColors.outline),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: Text(
-            quantity.toString(),
-            style: AppTextStyles.body,
-          ),
+          child: Text(quantity.toString(), style: AppTextStyles.body),
         ),
 
         // Increase Button
@@ -210,15 +200,8 @@ class _QuantityControls extends StatelessWidget {
           onPressed: () => onChanged(quantity + 1),
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(
-            width: 28,
-            height: 28,
-          ),
-          icon: Icon(
-            Icons.add,
-            size: 16,
-            color: AppColors.primary,
-          ),
+          constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+          icon: Icon(Icons.add, size: 16, color: AppColors.primary),
         ),
       ],
     );

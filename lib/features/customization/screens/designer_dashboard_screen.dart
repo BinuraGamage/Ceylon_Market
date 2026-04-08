@@ -8,6 +8,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class DesignerDashboardScreen extends ConsumerWidget {
   const DesignerDashboardScreen({super.key});
@@ -23,10 +24,11 @@ class DesignerDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Designer Dashboard'),
+        title: const AppLogoTitle(title: 'Designer Dashboard'),
         backgroundColor: AppColors.background,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: AppColors.background,
       body: incoming.when(

@@ -7,6 +7,7 @@ import '../../../models/cart_item_model.dart';
 import '../../../models/product_model.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../widgets/cart_item_card.dart';
@@ -23,9 +24,15 @@ class CartScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cart ($itemCount)'),
+        title: AppLogoTitle(
+          title: 'Cart ($itemCount)',
+          textStyle: AppTextStyles.heading2.copyWith(
+            color: AppColors.textOnPrimary,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textOnPrimary,
+        centerTitle: false,
       ),
       body: cartWithProducts.when(
         loading: () => const _CartLoadingView(),

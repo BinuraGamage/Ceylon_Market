@@ -15,6 +15,7 @@ import '../../../providers/order_provider.dart';
 import '../../../services/firestore_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../widgets/order_summary_card.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
@@ -100,15 +101,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Checkout'),
+        title: AppLogoTitle(
+          title: 'Checkout',
+          textStyle: AppTextStyles.heading2.copyWith(
+            color: AppColors.textOnPrimary,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
+        centerTitle: false,
       ),
       body: cartWithProducts.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => ErrorBanner(
-          message: 'Failed to load cart: ${error.toString()}',
-        ),
+        error: (error, stack) =>
+            ErrorBanner(message: 'Failed to load cart: ${error.toString()}'),
         data: (items) {
           if (items.isEmpty) {
             return const _EmptyCartView();
@@ -160,13 +166,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onPressed: _isProcessingPayment
                       ? null
                       : () => _placeOrder(
-                            context,
-                            ref,
-                            orderNotifier,
-                            items,
-                            finalTotal,
-                            currentUser,
-                          ),
+                          context,
+                          ref,
+                          orderNotifier,
+                          items,
+                          finalTotal,
+                          currentUser,
+                        ),
                   isLoading: _isProcessingPayment,
                 ),
               ],
@@ -189,13 +195,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _appliedPromoCode = code;
         _discountAmount = ref.read(cartTotalProvider) * 0.1; // 10% discount
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Promo code applied!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Promo code applied!')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid promo code')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid promo code')));
     }
   }
 
@@ -298,9 +304,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       await _processStripePayment(context, finalTotal, order, orderNotifier);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to process payment: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to process payment: $e')));
     } finally {
       if (mounted) {
         setState(() {
@@ -319,7 +325,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       // Create payment intent via Cloud Function
       final paymentIntent = await _createPaymentIntent(amount);
-      
+
       // Initialize Payment Sheet
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
@@ -331,14 +337,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Present Payment Sheet
       await Stripe.instance.presentPaymentSheet();
 
-      final paymentRef = paymentIntent['payment_intent_id']?.toString() ??
+      final paymentRef =
+          paymentIntent['payment_intent_id']?.toString() ??
           paymentIntent['id']?.toString();
 
       // Payment successful - create order
-      final orderId = await orderNotifier.createOrder(order.copyWith(
-        paymentStatus: 'paid',
-        paymentRef: paymentRef,
-      ));
+      final orderId = await orderNotifier.createOrder(
+        order.copyWith(paymentStatus: 'paid', paymentRef: paymentRef),
+      );
 
       // Clear cart after successful order
       await ref.read(cartNotifierProvider.notifier).clearCart();
@@ -353,9 +359,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Payment error: $e')));
     }
   }
 
@@ -380,14 +386,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           'currency': 'lkr',
           'automatic_payment_methods[enabled]': 'true',
           'metadata[customer_id]': ref.read(currentUserProvider)?.uid ?? '',
-          'metadata[customer_email]': ref.read(currentUserProvider)?.email ?? '',
+          'metadata[customer_email]':
+              ref.read(currentUserProvider)?.email ?? '',
         },
       );
 
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final errorMessage =
-            (payload['error'] as Map<String, dynamic>?)?['message'] as String? ??
+            (payload['error'] as Map<String, dynamic>?)?['message']
+                as String? ??
             'Stripe request failed';
         throw Exception(errorMessage);
       }
@@ -419,10 +427,7 @@ class _EmptyCartView extends StatelessWidget {
             color: AppColors.outline,
           ),
           const SizedBox(height: 16),
-          Text(
-            'Your cart is empty',
-            style: AppTextStyles.heading2,
-          ),
+          Text('Your cart is empty', style: AppTextStyles.heading2),
           const SizedBox(height: 24),
           AppButton(
             label: 'Continue Shopping',
@@ -461,10 +466,7 @@ class _PromoCodeSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Promo Code',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Promo Code', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             if (appliedCode != null)
               Container(
@@ -475,22 +477,13 @@ class _PromoCodeSection extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: AppColors.primary,
-                    ),
+                    Icon(Icons.check_circle, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    Text(
-                      'Applied: $appliedCode',
-                      style: AppTextStyles.body,
-                    ),
+                    Text('Applied: $appliedCode', style: AppTextStyles.body),
                     const Spacer(),
                     IconButton(
                       onPressed: onRemove,
-                      icon: Icon(
-                        Icons.close,
-                        color: AppColors.error,
-                      ),
+                      icon: Icon(Icons.close, color: AppColors.error),
                     ),
                   ],
                 ),
@@ -506,10 +499,7 @@ class _PromoCodeSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  AppButton(
-                    label: 'Apply',
-                    onPressed: onApply,
-                  ),
+                  AppButton(label: 'Apply', onPressed: onApply),
                 ],
               ),
           ],
@@ -540,10 +530,7 @@ class _ShippingAddressSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Shipping Address',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Shipping Address', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             AppTextField(
               controller: line1Controller,
@@ -613,10 +600,7 @@ class _PaymentMethodSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Payment Method',
-              style: AppTextStyles.heading3,
-            ),
+            Text('Payment Method', style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
@@ -626,19 +610,13 @@ class _PaymentMethodSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.credit_card,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.credit_card, color: AppColors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Stripe Payment',
-                          style: AppTextStyles.bodyLarge,
-                        ),
+                        Text('Stripe Payment', style: AppTextStyles.bodyLarge),
                         Text(
                           'Secure payment processing in LKR',
                           style: AppTextStyles.bodySmall.copyWith(
@@ -649,7 +627,10 @@ class _PaymentMethodSection extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),

@@ -10,6 +10,7 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../providers/shop_provider.dart';
 
@@ -23,8 +24,7 @@ class SellerRegisterScreen extends ConsumerStatefulWidget {
       _SellerRegisterScreenState();
 }
 
-class _SellerRegisterScreenState
-    extends ConsumerState<SellerRegisterScreen> {
+class _SellerRegisterScreenState extends ConsumerState<SellerRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _shopNameController = TextEditingController();
@@ -65,8 +65,10 @@ class _SellerRegisterScreenState
   Future<void> _pickImage({required bool isLogo}) async {
     try {
       final picker = ImagePicker();
-      final picked =
-          await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
       if (picked == null) return;
       setState(() {
         if (isLogo) {
@@ -89,7 +91,9 @@ class _SellerRegisterScreenState
       return;
     }
 
-    await ref.read(sellerRegistrationProvider.notifier).submit(
+    await ref
+        .read(sellerRegistrationProvider.notifier)
+        .submit(
           shopName: _shopNameController.text.trim(),
           story: _storyController.text.trim(),
           categories: List.from(_selectedCategories),
@@ -126,8 +130,11 @@ class _SellerRegisterScreenState
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text('Become a Seller', style: AppTextStyles.heading2),
-        centerTitle: true,
+        title: const AppLogoTitle(
+          title: 'Become a Seller',
+          textStyle: AppTextStyles.heading2,
+        ),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -137,14 +144,13 @@ class _SellerRegisterScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Intro ─────────────────────────────────────────────────
-              Text(
-                'Set up your shop',
-                style: AppTextStyles.heading1,
-              ),
+              Text('Set up your shop', style: AppTextStyles.heading1),
               const SizedBox(height: 4),
               Text(
                 'Tell buyers about your craft and products.',
-                style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -193,7 +199,8 @@ class _SellerRegisterScreenState
               AppTextField(
                 controller: _storyController,
                 label: 'Your Story',
-                hint: 'Tell buyers about your craft, heritage, and inspiration...',
+                hint:
+                    'Tell buyers about your craft, heritage, and inspiration...',
                 maxLines: 4,
                 validator: Validators.required,
               ),
@@ -283,8 +290,9 @@ class _SellerRegisterScreenState
                 ),
                 child: Text(
                   '⚠️  Your shop will be in "Pending" status until approved by our admin team. You\'ll be notified once approved.',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
@@ -327,10 +335,15 @@ class _ImagePickerTile extends StatelessWidget {
     Widget child;
     if (file != null) {
       child = ClipRRect(
-        borderRadius:
-            isCircle ? BorderRadius.circular(60) : BorderRadius.circular(12),
-        child: Image.file(file!, fit: BoxFit.cover,
-            width: isCircle ? 120 : double.infinity, height: height),
+        borderRadius: isCircle
+            ? BorderRadius.circular(60)
+            : BorderRadius.circular(12),
+        child: Image.file(
+          file!,
+          fit: BoxFit.cover,
+          width: isCircle ? 120 : double.infinity,
+          height: height,
+        ),
       );
     } else {
       child = Container(
@@ -338,8 +351,9 @@ class _ImagePickerTile extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius:
-              isCircle ? BorderRadius.circular(60) : BorderRadius.circular(12),
+          borderRadius: isCircle
+              ? BorderRadius.circular(60)
+              : BorderRadius.circular(12),
           border: Border.all(color: AppColors.border, style: BorderStyle.solid),
         ),
         child: Column(
@@ -347,9 +361,12 @@ class _ImagePickerTile extends StatelessWidget {
           children: [
             Icon(icon, size: 32, color: AppColors.textSecondary),
             const SizedBox(height: 8),
-            Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary)),
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       );
@@ -364,16 +381,16 @@ class _ImagePickerTile extends StatelessWidget {
   }
 
   Widget _editBadge() => Positioned(
-        bottom: 0,
-        right: 0,
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: const Icon(Icons.edit, size: 14, color: AppColors.textOnPrimary),
-        ),
-      );
+    bottom: 0,
+    right: 0,
+    child: Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: const Icon(Icons.edit, size: 14, color: AppColors.textOnPrimary),
+    ),
+  );
 }

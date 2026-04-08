@@ -16,6 +16,7 @@ import '../../home/widgets/customer_bottom_nav_bar.dart';
 import '../../../providers/product_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class CustomRequestDetailScreen extends ConsumerStatefulWidget {
   final String requestId;
@@ -367,7 +368,8 @@ class _CustomRequestDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Request Details'),
+        title: const AppLogoTitle(title: 'Request Details'),
+        centerTitle: false,
         backgroundColor: AppColors.background,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
@@ -568,7 +570,7 @@ class _CustomRequestDetailScreenState
         },
       ),
       bottomNavigationBar: showCustomerNavBar
-          ? const CustomerBottomNavBar(currentIndex: 4)
+          ? const CustomerBottomNavBar(currentIndex: -1)
           : null,
     );
   }

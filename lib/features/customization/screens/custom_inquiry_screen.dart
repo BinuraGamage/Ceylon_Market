@@ -9,12 +9,14 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/customization_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../home/widgets/customer_bottom_nav_bar.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class CustomInquiryScreen extends ConsumerStatefulWidget {
   const CustomInquiryScreen({super.key});
 
   @override
-  ConsumerState<CustomInquiryScreen> createState() => _CustomInquiryScreenState();
+  ConsumerState<CustomInquiryScreen> createState() =>
+      _CustomInquiryScreenState();
 }
 
 class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
@@ -33,7 +35,10 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final result = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
+    final result = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+    );
     if (result != null) {
       setState(() => _pickedImage = File(result.path));
     }
@@ -42,16 +47,21 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
   Future<void> _submitInquiry() async {
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please log in to send custom inquiries.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to send custom inquiries.'),
+        ),
+      );
       return;
     }
 
     if (_descriptionController.text.trim().isEmpty && _pickedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please provide an image or description.'),
-        backgroundColor: AppColors.error,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide an image or description.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
 
@@ -85,10 +95,12 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
           .read(customizationNotifierProvider.notifier)
           .submitInquiryRequest(request: request);
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Inquiry submitted successfully.'),
-        backgroundColor: AppColors.primary,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inquiry submitted successfully.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
 
       _descriptionController.clear();
       _tagsController.clear();
@@ -97,10 +109,12 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
         _selectedShop = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to submit inquiry: $e'),
-        backgroundColor: AppColors.error,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit inquiry: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       setState(() => _isSubmitting = false);
     }
@@ -118,10 +132,11 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Custom Product Inquiry'),
+        title: const AppLogoTitle(title: 'Custom Product Inquiry'),
         backgroundColor: AppColors.background,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: AppColors.background,
       body: ListView(
@@ -142,9 +157,7 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
                 border: Border.all(color: AppColors.divider),
               ),
               child: _pickedImage == null
-                  ? const Center(
-                      child: Text('Tap to add reference image'),
-                    )
+                  ? const Center(child: Text('Tap to add reference image'))
                   : Image.file(_pickedImage!, fit: BoxFit.cover),
             ),
           ),
@@ -167,8 +180,10 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 16),
-          const Text('Suggested shops (auto-match)',
-              style: TextStyle(fontWeight: FontWeight.w600)),
+          const Text(
+            'Suggested shops (auto-match)',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 8),
           shopsAsync.when(
             data: (shops) {
@@ -180,9 +195,14 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
                   final selected = _selectedShop?.shopId == shop.shopId;
                   return ListTile(
                     title: Text(shop.name),
-                    subtitle: Text('${shop.city} · ${shop.categories.join(', ')}'),
+                    subtitle: Text(
+                      '${shop.city} · ${shop.categories.join(', ')}',
+                    ),
                     trailing: selected
-                        ? const Icon(Icons.check_circle, color: AppColors.primary)
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: AppColors.primary,
+                          )
                         : null,
                     onTap: () => setState(() => _selectedShop = shop),
                   );
@@ -199,7 +219,7 @@ class _CustomInquiryScreenState extends ConsumerState<CustomInquiryScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 }
