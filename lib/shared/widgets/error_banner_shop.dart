@@ -16,11 +16,7 @@ import '../../core/constants/app_text_styles.dart';
 /// )
 /// ```
 class ErrorBanner extends StatelessWidget {
-  const ErrorBanner({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ErrorBanner({super.key, required this.message, this.onRetry});
 
   final String message;
   final VoidCallback? onRetry;
@@ -38,8 +34,11 @@ class ErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.error, size: 20),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.error,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -47,14 +46,14 @@ class ErrorBanner extends StatelessWidget {
               children: [
                 Text(
                   'Something went wrong',
-                  style: AppTextStyles.label
-                      .copyWith(color: AppColors.error),
+                  style: AppTextStyles.label.copyWith(color: AppColors.error),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   message,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.error.withOpacity(0.8)),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.error.withOpacity(0.8),
+                  ),
                 ),
                 if (onRetry != null) ...[
                   const SizedBox(height: 8),

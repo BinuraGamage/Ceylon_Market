@@ -157,8 +157,9 @@ class _OutlineButton extends StatelessWidget {
               label: label,
               isLoading: isLoading,
               icon: icon,
-              textStyle:
-                  AppTextStyles.button.copyWith(color: AppColors.primary),
+              textStyle: AppTextStyles.button.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ),
         );
@@ -192,8 +193,10 @@ class _TextButtonVariant extends StatelessWidget {
             Icon(icon, size: 18, color: AppColors.primary),
             const SizedBox(width: 6),
           ],
-          Text(label,
-              style: AppTextStyles.button.copyWith(color: AppColors.primary)),
+          Text(
+            label,
+            style: AppTextStyles.button.copyWith(color: AppColors.primary),
+          ),
         ],
       ),
     );

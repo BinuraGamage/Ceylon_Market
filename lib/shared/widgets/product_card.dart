@@ -135,10 +135,11 @@ class _ShopLogoRow extends ConsumerWidget {
                         fit: BoxFit.cover,
                       ),
                     )
-                  : const Icon(
-                      Icons.storefront_rounded,
-                      color: AppColors.primary,
-                      size: 10,
+                  : Image.asset(
+                      'assets/icon.png',
+                      height: 10,
+                      width: 10,
+                      fit: BoxFit.contain,
                     ),
             ),
             const SizedBox(width: 4),

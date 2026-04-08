@@ -7,11 +7,7 @@ class ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const ErrorBanner({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ErrorBanner({super.key, required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +35,10 @@ class ErrorBanner extends StatelessWidget {
               const SizedBox(height: 20),
               TextButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded,
-                    color: AppColors.primary),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  color: AppColors.primary,
+                ),
                 label: const Text(
                   'Try again',
                   style: TextStyle(color: AppColors.primary),

@@ -25,6 +25,7 @@ import '../../features/products/screens/product_form_screen.dart';
 import '../../features/products/screens/product_reviews_screen.dart';
 import '../../features/products/screens/seller_products_screen.dart';
 import '../../features/engagement/screens/ar_preview_screen.dart';
+import '../../features/engagement/screens/notifications_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/shop/screens/seller_register_screen.dart';
 import '../../features/shop/screens/seller_dashboard_screen.dart';
@@ -268,6 +269,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'profile',
         path: '/profile',
         builder: (context, state) => const CustomerProfileScreen(),
+      ),
+      GoRoute(
+        name: 'notifications',
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

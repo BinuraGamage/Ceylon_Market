@@ -24,9 +24,7 @@ class AppTheme {
         foregroundColor: AppColors.textOnPrimary,
         // Avoid forcing infinite width globally; this breaks buttons in Row/Flex.
         minimumSize: const Size(0, 52),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
     ),

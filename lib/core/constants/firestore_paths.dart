@@ -7,6 +7,7 @@ class FirestorePaths {
   static const String customRequests = 'customRequests';
   static const String ads = 'ads';
   static const String notificationQueue = 'notificationQueue';
+  static const String notifications = 'notifications';
   static const String offers = 'offers';
 
   // Document paths
