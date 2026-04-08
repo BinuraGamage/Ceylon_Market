@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../providers/product_provider.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class ArPreviewScreen extends ConsumerWidget {
   final String productId;
@@ -22,13 +23,17 @@ class ArPreviewScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            context.goNamed('product-detail', pathParameters: {'id': productId});
+            context.goNamed(
+              'product-detail',
+              pathParameters: {'id': productId},
+            );
           },
         ),
-        title: const Text('AR Preview'),
+        title: const AppLogoTitle(title: 'AR Preview'),
         backgroundColor: AppColors.background,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: AppColors.background,
       body: productAsync.when(
@@ -51,19 +56,27 @@ class ArPreviewScreen extends ConsumerWidget {
             );
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                color: AppColors.surface,
-                child: ModelViewer(
-                  src: modelUrl,
-                  ar: true,
-                  arModes: const ['scene-viewer', 'webxr', 'quick-look'],
-                  autoRotate: true,
-                  cameraControls: true,
-                  backgroundColor: AppColors.surface,
+          return SafeArea(
+            bottom: true,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 12,
+                bottom: 24,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  color: AppColors.surface,
+                  child: ModelViewer(
+                    src: modelUrl,
+                    ar: true,
+                    arModes: const ['scene-viewer', 'webxr', 'quick-look'],
+                    autoRotate: true,
+                    cameraControls: true,
+                    backgroundColor: AppColors.surface,
+                  ),
                 ),
               ),
             ),
