@@ -312,7 +312,9 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
     return normalized.toList();
   }
 
-  Future<List<String>> _extractGeminiTagsFromImages(List<File> imageFiles) async {
+  Future<List<String>> _extractGeminiTagsFromImages(
+    List<File> imageFiles,
+  ) async {
     if (imageFiles.isEmpty) return const [];
 
     final imageSearchService = ref.read(imageSearchServiceProvider);
@@ -324,7 +326,9 @@ class SellerProductFormNotifier extends Notifier<SellerProductFormState> {
         final labels = await imageSearchService.getGeminiLabelsFromImage(file);
         extracted.addAll(_normalizeTags(labels));
       } catch (e) {
-        debugPrint('[SellerProductFormNotifier] Gemini tag extraction error: $e');
+        debugPrint(
+          '[SellerProductFormNotifier] Gemini tag extraction error: $e',
+        );
       }
     }
 
@@ -642,3 +646,4 @@ final reviewSubmitProvider =
     NotifierProvider<ReviewSubmitNotifier, ReviewSubmitState>(
       ReviewSubmitNotifier.new,
     );
+final homeSelectedCategoryProvider = StateProvider<String>((ref) => '');

@@ -63,8 +63,9 @@ final activeSearchFiltersProvider = Provider<SearchFilters>((ref) {
 
 /// Fires a Firestore query whenever any filter changes.
 /// autoDispose cancels the query when SearchScreen is popped.
-final searchResultsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final searchResultsProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final filters = ref.watch(activeSearchFiltersProvider);
 
   // Guard: nothing to search yet — return empty list immediately.
