@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Gemini 3 Flash)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=GEMINI_API_KEY_B64=QUl6YVN5Q3hEMnBMTkUzb2xzSDZBRG5KWTZQX1VEQmdIeGpBTGFr",
+        "--dart-define=GEMINI_MODEL=gemini-3-flash-preview"
+      ]
+    }
+  ]
+}

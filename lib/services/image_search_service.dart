@@ -24,13 +24,33 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 ///     getLabelsFromFile(file)
 ///
 /// Setup:
-///   flutter run --dart-define=GEMINI_API_KEY=your_key
+///   flutter run --dart-define=GEMINI_API_KEY_B64=base64_encoded_key
 class ImageSearchService {
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+  static const String _geminiApiKeyB64 = String.fromEnvironment(
+    'GEMINI_API_KEY_B64',
+  );
   static const String _geminiModel = String.fromEnvironment(
     'GEMINI_MODEL',
     defaultValue: 'gemini-3-flash-preview',
   );
+
+  String get _resolvedGeminiApiKey {
+    if (_geminiApiKey.isNotEmpty) {
+      return _geminiApiKey.trim();
+    }
+
+    if (_geminiApiKeyB64.isEmpty) {
+      return '';
+    }
+
+    try {
+      return utf8.decode(base64Decode(_geminiApiKeyB64)).trim();
+    } catch (e) {
+      debugPrint('[ImageSearchService] Invalid GEMINI_API_KEY_B64: $e');
+      return '';
+    }
+  }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -139,10 +159,11 @@ class ImageSearchService {
 
   /// Core Gemini multimodal API call. Returns matched Firestore tags.
   Future<List<String>> _sendToGemini(List<int> imageBytes) async {
-    if (_geminiApiKey.isEmpty) {
+    final apiKey = _resolvedGeminiApiKey;
+    if (apiKey.isEmpty) {
       debugPrint(
-        '[ImageSearchService] GEMINI_API_KEY not set — '
-        'build with --dart-define=GEMINI_API_KEY=xxx',
+        '[ImageSearchService] Gemini key not set — build with '
+        '--dart-define=GEMINI_API_KEY_B64=base64_encoded_key',
       );
       return [];
     }
@@ -174,7 +195,7 @@ class ImageSearchService {
     try {
       final endpoint =
           'https://generativelanguage.googleapis.com/v1beta/models/'
-          '$_geminiModel:generateContent?key=$_geminiApiKey';
+          '$_geminiModel:generateContent?key=$apiKey';
       final request = await client.postUrl(Uri.parse(endpoint));
       request.headers.contentType = ContentType.json;
       request.write(body);
