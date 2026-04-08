@@ -364,214 +364,233 @@ class _CustomRequestDetailScreenState
       customRequestMessagesProvider(widget.requestId),
     );
     final currentUser = ref.watch(currentUserProvider);
+    final isDesigner = currentUser?.role == 'designer';
     final showCustomerNavBar = currentUser?.role == 'customer';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppLogoTitle(title: 'Request Details'),
-        centerTitle: false,
+    void goBackForDesigner() {
+      context.goNamed('designer-home');
+    }
+
+    return PopScope(
+      canPop: !isDesigner,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isDesigner) {
+          goBackForDesigner();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: isDesigner
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: goBackForDesigner,
+                )
+              : null,
+          title: const AppLogoTitle(title: 'Request Details'),
+          centerTitle: false,
+          backgroundColor: AppColors.background,
+          iconTheme: const IconThemeData(color: AppColors.textPrimary),
+          elevation: 0,
+        ),
         backgroundColor: AppColors.background,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        elevation: 0,
-      ),
-      backgroundColor: AppColors.background,
-      body: requestAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error loading request: $e')),
-        data: (request) {
-          final isDesigner = currentUser?.role == 'designer';
-          final isSeller = currentUser?.role == 'seller';
-          final actions = <Widget>[];
-          if (isDesigner && request.status == 'pending') {
-            actions.addAll([
-              ElevatedButton(
-                onPressed: () => _changeStatus(request, 'assigned'),
-                child: const Text('Accept'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
+        body: requestAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error loading request: $e')),
+          data: (request) {
+            final isSeller = currentUser?.role == 'seller';
+            final actions = <Widget>[];
+            if (isDesigner && request.status == 'pending') {
+              actions.addAll([
+                ElevatedButton(
+                  onPressed: () => _changeStatus(request, 'assigned'),
+                  child: const Text('Accept'),
                 ),
-                onPressed: () => _changeStatus(request, 'rejected'),
-                child: const Text('Decline'),
-              ),
-            ]);
-          }
-          if ((isDesigner || isSeller) && request.status == 'assigned') {
-            actions.addAll([
-              ElevatedButton(
-                onPressed: () => _changeStatus(request, 'in_progress'),
-                child: const Text('In Progress'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
+                  onPressed: () => _changeStatus(request, 'rejected'),
+                  child: const Text('Decline'),
                 ),
-                onPressed: () => _changeStatus(request, 'completed'),
-                child: const Text('Mark Complete'),
-              ),
-            ]);
-          }
+              ]);
+            }
+            if ((isDesigner || isSeller) && request.status == 'assigned') {
+              actions.addAll([
+                ElevatedButton(
+                  onPressed: () => _changeStatus(request, 'in_progress'),
+                  child: const Text('In Progress'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  onPressed: () => _changeStatus(request, 'completed'),
+                  child: const Text('Mark Complete'),
+                ),
+              ]);
+            }
 
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Card(
-                      elevation: 0,
-                      color: AppColors.surface,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Request ID: ${request.requestId}'),
-                            const SizedBox(height: 6),
-                            Text('Type: ${request.type}'),
-                            const SizedBox(height: 6),
-                            Text('Status: ${request.status}'),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Description: ${request.description.isEmpty ? 'N/A' : request.description}',
-                            ),
-                            if (request.imageUrl != null) ...[
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                height: 160,
-                                child: Image.network(
-                                  request.imageUrl!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ],
-                            if (request.productId != null) ...[
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Card(
+                        elevation: 0,
+                        color: AppColors.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Request ID: ${request.requestId}'),
                               const SizedBox(height: 6),
-                              Text('Product ID: ${request.productId}'),
-                            ],
-                            const SizedBox(height: 6),
-                            Text(
-                              'Requested color: ${request.selectedColor ?? 'Any'}',
-                            ),
-                            Text(
-                              'Requested size: ${request.selectedSize ?? 'Any'}',
-                            ),
-                            Text(
-                              'Requested material: ${request.selectedMaterial ?? 'Any'}',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    if (currentUser?.role == 'designer' &&
-                        (request.type == 'customization' ||
-                            request.type == 'ar_model')) ...[
-                      const SizedBox(height: 12),
-                      _linkedProductSection(request),
-                    ],
-
-                    if (actions.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Wrap(spacing: 8, children: actions),
-                      ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Conversation',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    messagesAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Text('Could not load messages: $e'),
-                      data: (messages) {
-                        if (messages.isEmpty) {
-                          return const Text('No messages yet.');
-                        }
-                        return Column(
-                          children: messages.map((message) {
-                            final isSelf = message.senderId == currentUser?.uid;
-                            return Align(
-                              alignment: isSelf
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isSelf
-                                      ? AppColors.primary.withOpacity(0.1)
-                                      : AppColors.surface,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppColors.divider),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${message.senderName} • ${message.sentAt.toLocal().toString().split('.').first}',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.textHint,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(message.message),
-                                  ],
-                                ),
+                              Text('Type: ${request.type}'),
+                              const SizedBox(height: 6),
+                              Text('Status: ${request.status}'),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Description: ${request.description.isEmpty ? 'N/A' : request.description}',
                               ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 90),
-                  ],
-                ),
-              ),
-              Container(
-                color: AppColors.surface,
-                padding: EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  bottom: MediaQuery.of(context).padding.bottom + 8,
-                  top: 8,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          border: OutlineInputBorder(),
+                              if (request.imageUrl != null) ...[
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  height: 160,
+                                  child: Image.network(
+                                    request.imageUrl!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ],
+                              if (request.productId != null) ...[
+                                const SizedBox(height: 6),
+                                Text('Product ID: ${request.productId}'),
+                              ],
+                              const SizedBox(height: 6),
+                              Text(
+                                'Requested color: ${request.selectedColor ?? 'Any'}',
+                              ),
+                              Text(
+                                'Requested size: ${request.selectedSize ?? 'Any'}',
+                              ),
+                              Text(
+                                'Requested material: ${request.selectedMaterial ?? 'Any'}',
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: _isSending
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.send, color: AppColors.primary),
-                      onPressed: _isSending
-                          ? null
-                          : () => _sendMessage(request),
-                    ),
-                  ],
+
+                      if (currentUser?.role == 'designer' &&
+                          (request.type == 'customization' ||
+                              request.type == 'ar_model')) ...[
+                        const SizedBox(height: 12),
+                        _linkedProductSection(request),
+                      ],
+
+                      if (actions.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Wrap(spacing: 8, children: actions),
+                        ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Conversation',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      messagesAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Text('Could not load messages: $e'),
+                        data: (messages) {
+                          if (messages.isEmpty) {
+                            return const Text('No messages yet.');
+                          }
+                          return Column(
+                            children: messages.map((message) {
+                              final isSelf = message.senderId == currentUser?.uid;
+                              return Align(
+                                alignment: isSelf
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isSelf
+                                        ? AppColors.primary.withValues(alpha: 0.1)
+                                        : AppColors.surface,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppColors.divider),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${message.senderName} • ${message.sentAt.toLocal().toString().split('.').first}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textHint,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(message.message),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 90),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+                Container(
+                  color: AppColors.surface,
+                  padding: EdgeInsets.only(
+                    left: 12,
+                    right: 12,
+                    bottom: MediaQuery.of(context).padding.bottom + 8,
+                    top: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: 'Type a message...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: _isSending
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.send, color: AppColors.primary),
+                        onPressed: _isSending
+                            ? null
+                            : () => _sendMessage(request),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        bottomNavigationBar: showCustomerNavBar
+            ? const CustomerBottomNavBar(currentIndex: -1)
+            : null,
       ),
-      bottomNavigationBar: showCustomerNavBar
-          ? const CustomerBottomNavBar(currentIndex: -1)
-          : null,
     );
   }
 }

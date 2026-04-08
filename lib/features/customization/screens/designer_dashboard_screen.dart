@@ -40,37 +40,79 @@ class DesignerDashboardScreen extends ConsumerWidget {
             return const Center(child: Text('No requests assigned yet.'));
           }
 
-          final categorized = {
-            'new': requests.where((r) => r.status == 'pending').toList(),
-            'assigned': requests.where((r) => r.status == 'assigned').toList(),
-            'in_progress': requests
-                .where((r) => r.status == 'in_progress')
-                .toList(),
-            'completed': requests
-                .where((r) => r.status == 'completed')
-                .toList(),
-            'rejected': requests.where((r) => r.status == 'rejected').toList(),
-          };
+          final tabs = <({String label, List<CustomRequestModel> requests})>[
+            (label: 'New', requests: requests.where((r) => r.status == 'pending').toList()),
+            (
+              label: 'Assigned',
+              requests: requests.where((r) => r.status == 'assigned').toList(),
+            ),
+            (
+              label: 'In Progress',
+              requests: requests.where((r) => r.status == 'in_progress').toList(),
+            ),
+            (
+              label: 'Completed',
+              requests: requests.where((r) => r.status == 'completed').toList(),
+            ),
+            (
+              label: 'Rejected',
+              requests: requests.where((r) => r.status == 'rejected').toList(),
+            ),
+          ];
 
-          return ListView(
-            padding: const EdgeInsets.all(12),
-            children: categorized.entries
-                .where((entry) => entry.value.isNotEmpty)
-                .expand((entry) {
-                  return [
-                    Text(
-                      entry.key.replaceAll('_', ' ').toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    ...entry.value.map((req) => _RequestTile(request: req)),
-                    const SizedBox(height: 16),
-                  ];
-                })
-                .toList(),
+          return DefaultTabController(
+            length: tabs.length,
+            child: Column(
+              children: [
+                Container(
+                  color: AppColors.background,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.textSecondary,
+                    indicatorColor: AppColors.primary,
+                    tabs: [for (final tab in tabs) Tab(text: tab.label)],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      for (final tab in tabs)
+                        _RequestsTabList(
+                          requests: tab.requests,
+                          emptyMessage:
+                              'No ${tab.label.toLowerCase()} requests yet.',
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
+    );
+  }
+}
+
+class _RequestsTabList extends StatelessWidget {
+  const _RequestsTabList({required this.requests, required this.emptyMessage});
+
+  final List<CustomRequestModel> requests;
+  final String emptyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (requests.isEmpty) {
+      return Center(child: Text(emptyMessage));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: requests.length,
+      itemBuilder: (context, index) => _RequestTile(request: requests[index]),
     );
   }
 }
@@ -106,7 +148,7 @@ class _RequestTile extends ConsumerWidget {
         : null;
 
     return GestureDetector(
-      onTap: () => context.goNamed(
+      onTap: () => context.pushNamed(
         'custom-request-detail',
         pathParameters: {'id': request.requestId},
       ),
@@ -124,7 +166,7 @@ class _RequestTile extends ConsumerWidget {
             if (productAsync != null)
               productAsync.when(
                 loading: () => const LoadingShimmer(height: 52, width: 52),
-                error: (_, __) => Container(
+                error: (error, stackTrace) => Container(
                   height: 52,
                   width: 52,
                   decoration: BoxDecoration(
@@ -203,7 +245,7 @@ class _RequestTile extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _badgeColor(request.status).withOpacity(0.12),
+                color: _badgeColor(request.status).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

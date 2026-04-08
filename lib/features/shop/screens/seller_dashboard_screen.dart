@@ -261,6 +261,11 @@ class _DashboardContent extends ConsumerWidget {
                       },
                       filled: false,
                     ),
+                    _OutlineButton(
+                      label: 'Custom Requests',
+                      onTap: () => context.pushNamed('seller-custom-requests'),
+                      filled: false,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/order_model.dart';
@@ -12,6 +13,10 @@ import '../../../shared/widgets/loading_shimmer.dart';
 
 class SellerOrderManagementScreen extends ConsumerWidget {
   const SellerOrderManagementScreen({super.key});
+
+  void _goBackToSellerDashboard(BuildContext context) {
+    context.goNamed('seller-dashboard');
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,26 +41,37 @@ class SellerOrderManagementScreen extends ConsumerWidget {
           order_prov.shopOrdersProviderOrder(shop.shopId),
         );
 
-        return Scaffold(
-          appBar: AppBar(
-            title: AppLogoTitle(
-              title: 'Order Management',
-              textStyle: AppTextStyles.heading2.copyWith(
-                color: AppColors.textOnPrimary,
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _goBackToSellerDashboard(context);
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => _goBackToSellerDashboard(context),
               ),
+              title: AppLogoTitle(
+                title: 'Order Management',
+                textStyle: AppTextStyles.heading2.copyWith(
+                  color: AppColors.textOnPrimary,
+                ),
+              ),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              centerTitle: false,
             ),
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.onPrimary,
-            centerTitle: false,
-          ),
-          body: ordersAsync.when(
-            loading: () => const _OrdersLoadingView(),
-            error: (error, stack) => ErrorBanner(
-              message: 'Failed to load orders: ${error.toString()}',
+            body: ordersAsync.when(
+              loading: () => const _OrdersLoadingView(),
+              error: (error, stack) => ErrorBanner(
+                message: 'Failed to load orders: ${error.toString()}',
+              ),
+              data: (orders) => orders.isEmpty
+                  ? const _EmptyOrdersView()
+                  : _OrdersListView(orders: orders),
             ),
-            data: (orders) => orders.isEmpty
-                ? const _EmptyOrdersView()
-                : _OrdersListView(orders: orders),
           ),
         );
       },
@@ -179,7 +195,7 @@ class _OrderCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

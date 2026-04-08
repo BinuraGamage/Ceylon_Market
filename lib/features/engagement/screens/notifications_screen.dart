@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/notification_model.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/error_banner.dart';
@@ -17,45 +19,146 @@ class NotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
+    final currentUser = ref.watch(currentUserProvider);
+    final showCustomerNavBar = currentUser?.role == 'customer';
+    final showSellerNavBar = currentUser?.role == 'seller';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppLogoTitle(title: 'Notifications'),
+    void goBackForSeller() {
+      context.goNamed('seller-dashboard');
+    }
+
+    return PopScope(
+      canPop: !showSellerNavBar,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (showSellerNavBar) {
+          goBackForSeller();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: showSellerNavBar
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: goBackForSeller,
+                )
+              : null,
+          title: const AppLogoTitle(title: 'Notifications'),
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          centerTitle: false,
+        ),
         backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 2),
-      body: notificationsAsync.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return _EmptyState();
-          }
-          return ListView.separated(
+        bottomNavigationBar: showCustomerNavBar
+            ? const CustomerBottomNavBar(currentIndex: 2)
+            : showSellerNavBar
+            ? const _SellerBottomNavBar()
+            : null,
+        body: notificationsAsync.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return _EmptyState();
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _NotificationTile(
+                notification: items[index],
+                onMarkRead: items[index].isRead
+                    ? null
+                    : () => ref
+                          .read(notificationNotifierProvider.notifier)
+                          .markRead(items[index].notificationId),
+              ),
+            );
+          },
+          loading: () => ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => _NotificationTile(
-              notification: items[index],
-              onMarkRead: items[index].isRead
-                  ? null
-                  : () => ref
-                        .read(notificationNotifierProvider.notifier)
-                        .markRead(items[index].notificationId),
-            ),
-          );
-        },
-        loading: () => ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: 6,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, __) => const LoadingShimmer(height: 72),
+            itemCount: 6,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) => const LoadingShimmer(height: 72),
+          ),
+          error: (error, _) => ErrorBanner(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(notificationsProvider),
+          ),
         ),
-        error: (error, _) => ErrorBanner(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(notificationsProvider),
-        ),
+      ),
+    );
+  }
+}
+
+class _SellerBottomNavBar extends StatelessWidget {
+  const _SellerBottomNavBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _SellerNavItem(
+            icon: Icons.home_rounded,
+            label: 'Home',
+            onTap: () => context.goNamed('seller-dashboard'),
+          ),
+          _SellerNavItem(
+            icon: Icons.inventory_2_outlined,
+            label: 'Products',
+            onTap: () => context.pushNamed('seller-products'),
+          ),
+          _SellerNavItem(
+            icon: Icons.receipt_long_outlined,
+            label: 'Orders',
+            onTap: () => context.goNamed('seller-orders'),
+          ),
+          _SellerNavItem(
+            icon: Icons.add_circle_outline_rounded,
+            label: 'Add',
+            onTap: () => context.pushNamed('seller-product-create'),
+          ),
+          _SellerNavItem(
+            icon: Icons.notifications_none_rounded,
+            label: 'Alerts',
+            onTap: () {},
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SellerNavItem extends StatelessWidget {
+  const _SellerNavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.primary, size: 24),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+          ),
+        ],
       ),
     );
   }
