@@ -1,0 +1,30 @@
+--- lib/features/home/screens/customer_home_screen.dart
++++ lib/features/home/screens/customer_home_screen.dart
+@@ -20,6 +20,8 @@
+ 
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
++    final selectedCategory = ref.watch(homeSelectedCategoryProvider);
++
+     return Scaffold(
+       backgroundColor: AppColors.background,
+       bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 0),
+@@ -29,6 +31,7 @@
+             const _HomeAppBar(),
+             const _SearchBar(),
+             const _CategoryChips(),
++            if (selectedCategory.isEmpty) ...[
+             Card(
+               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+               shape: RoundedRectangleBorder(
+@@ -74,6 +77,10 @@
+             _TrendingRow(),
+             const SizedBox(height: 12),
+             _ShopRows(),
++            ] else ...[
++              const SizedBox(height: 12),
++              _CategoryProductGrid(category: selectedCategory),
++            ],
+             const SizedBox(height: 24),
+           ],
+         ),

@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We use your camera so you can search for products using photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We use your photo library so you can pick images for product search.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We may save selected photos for image search improvements.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to pin your shop exactly on the customer map.</string>
 </dict>
 </plist>
