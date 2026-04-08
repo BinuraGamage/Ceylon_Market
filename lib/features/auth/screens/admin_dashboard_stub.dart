@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/firestore_paths.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class AdminDashboardStub extends ConsumerStatefulWidget {
   const AdminDashboardStub({super.key});
@@ -32,7 +33,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
   }
 
   Future<void> _updateUserStatus(String uid, String status) async {
-    await _firestore.doc(FirestorePaths.userDoc(uid)).update({'status': status});
+    await _firestore.doc(FirestorePaths.userDoc(uid)).update({
+      'status': status,
+    });
   }
 
   Future<void> _updateUserRole(String uid, String role) async {
@@ -62,8 +65,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
   void _showSnack(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message,
-            style: const TextStyle(fontFamily: 'Sora', color: Colors.white)),
+        content: Text(
+          message,
+          style: const TextStyle(fontFamily: 'Sora', color: Colors.white),
+        ),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -78,26 +83,37 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => AlertDialog(
           backgroundColor: AppColors.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Change Role',
-              style: const TextStyle(
-                  fontFamily: 'Sora',
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Change Role',
+            style: const TextStyle(
+              fontFamily: 'Sora',
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(user.displayName,
-                  style: const TextStyle(
-                      fontFamily: 'Sora', color: AppColors.textSecondary)),
+              Text(
+                user.displayName,
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  color: AppColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 16),
               for (final role in ['customer', 'seller', 'designer', 'admin'])
                 RadioListTile<String>(
-                  title: Text(role,
-                      style: const TextStyle(
-                          fontFamily: 'Sora',
-                          color: AppColors.textPrimary)),
+                  title: Text(
+                    role,
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   value: role,
                   groupValue: selected,
                   activeColor: AppColors.primary,
@@ -108,9 +124,13 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(
-                      fontFamily: 'Sora', color: AppColors.textSecondary)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Sora',
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -118,8 +138,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
                 if (mounted) Navigator.pop(ctx);
                 _showSnack('Role updated to $selected', AppColors.success);
               },
-              child: const Text('Save',
-                  style: TextStyle(fontFamily: 'Sora')),
+              child: const Text('Save', style: TextStyle(fontFamily: 'Sora')),
             ),
           ],
         ),
@@ -136,15 +155,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(
+        title: const AppLogoTitle(
+          title: 'Admin Dashboard',
+          textStyle: TextStyle(
             fontFamily: 'Sora',
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             fontSize: 18,
           ),
         ),
+        centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: AppColors.textSecondary),
@@ -160,7 +180,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboardStub>
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
           labelStyle: const TextStyle(
-              fontFamily: 'Sora', fontWeight: FontWeight.w600, fontSize: 13),
+            fontFamily: 'Sora',
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
           tabs: const [
             Tab(text: 'Users'),
             Tab(text: 'Sellers'),
@@ -215,19 +238,23 @@ class _UsersTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
-            child: Text('No users found.',
-                style: TextStyle(fontFamily: 'Sora',
-                    color: AppColors.textSecondary)),
+            child: Text(
+              'No users found.',
+              style: TextStyle(
+                fontFamily: 'Sora',
+                color: AppColors.textSecondary,
+              ),
+            ),
           );
         }
 
         final users = snapshot.data!.docs.map((doc) {
-          return UserModel.fromMap(
-              doc.data() as Map<String, dynamic>, doc.id);
+          return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }).toList();
 
         return ListView.builder(
@@ -260,16 +287,22 @@ class _UserCard extends StatelessWidget {
 
   Color get _roleColor {
     switch (user.role) {
-      case 'admin':    return const Color(0xFF6C3483);
-      case 'seller':   return AppColors.primary;
-      case 'designer': return const Color(0xFF117A65);
-      default:         return const Color(0xFF1A5276);
+      case 'admin':
+        return const Color(0xFF6C3483);
+      case 'seller':
+        return AppColors.primary;
+      case 'designer':
+        return const Color(0xFF117A65);
+      default:
+        return const Color(0xFF1A5276);
     }
   }
 
-  Color get _statusColor =>
-      user.status == 'active' ? AppColors.success :
-      user.status == 'banned' ? AppColors.error : AppColors.warning;
+  Color get _statusColor => user.status == 'active'
+      ? AppColors.success
+      : user.status == 'banned'
+      ? AppColors.error
+      : AppColors.warning;
 
   @override
   Widget build(BuildContext context) {
@@ -280,9 +313,10 @@ class _UserCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 6,
-              offset: const Offset(0, 2))
+            color: AppColors.cardShadow,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -298,10 +332,11 @@ class _UserCard extends StatelessWidget {
                     ? user.displayName[0].toUpperCase()
                     : '?',
                 style: TextStyle(
-                    fontFamily: 'Sora',
-                    fontWeight: FontWeight.w700,
-                    color: _roleColor,
-                    fontSize: 18),
+                  fontFamily: 'Sora',
+                  fontWeight: FontWeight.w700,
+                  color: _roleColor,
+                  fontSize: 18,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -311,18 +346,24 @@ class _UserCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user.displayName,
-                      style: const TextStyle(
-                          fontFamily: 'Sora',
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                          fontSize: 14)),
+                  Text(
+                    user.displayName,
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(user.email,
-                      style: const TextStyle(
-                          fontFamily: 'Sora',
-                          color: AppColors.textSecondary,
-                          fontSize: 12)),
+                  Text(
+                    user.email,
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -337,10 +378,10 @@ class _UserCard extends StatelessWidget {
 
             // Actions
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert,
-                  color: AppColors.textSecondary),
+              icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               onSelected: (action) async {
                 if (action == 'role') {
                   onRoleChange(user);
@@ -355,40 +396,60 @@ class _UserCard extends StatelessWidget {
               itemBuilder: (_) => [
                 const PopupMenuItem(
                   value: 'role',
-                  child: Row(children: [
-                    Icon(Icons.manage_accounts, size: 18,
-                        color: AppColors.primary),
-                    SizedBox(width: 8),
-                    Text('Change Role',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 13)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.manage_accounts,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Change Role',
+                        style: TextStyle(fontFamily: 'Sora', fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
                 if (user.status != 'banned')
                   const PopupMenuItem(
                     value: 'ban',
-                    child: Row(children: [
-                      Icon(Icons.block, size: 18, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text('Ban User',
+                    child: Row(
+                      children: [
+                        Icon(Icons.block, size: 18, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text(
+                          'Ban User',
                           style: TextStyle(
-                              fontFamily: 'Sora',
-                              fontSize: 13,
-                              color: AppColors.error)),
-                    ]),
+                            fontFamily: 'Sora',
+                            fontSize: 13,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 if (user.status == 'banned')
                   const PopupMenuItem(
                     value: 'unban',
-                    child: Row(children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 18, color: AppColors.success),
-                      SizedBox(width: 8),
-                      Text('Unban User',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 18,
+                          color: AppColors.success,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Unban User',
                           style: TextStyle(
-                              fontFamily: 'Sora',
-                              fontSize: 13,
-                              color: AppColors.success)),
-                    ]),
+                            fontFamily: 'Sora',
+                            fontSize: 13,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -424,7 +485,8 @@ class _SellersTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         }
 
         final docs = snapshot.data?.docs ?? [];
@@ -434,14 +496,20 @@ class _SellersTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline,
-                    size: 56, color: AppColors.success.withOpacity(0.5)),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 56,
+                  color: AppColors.success.withOpacity(0.5),
+                ),
                 const SizedBox(height: 12),
-                const Text('No pending seller applications',
-                    style: TextStyle(
-                        fontFamily: 'Sora',
-                        color: AppColors.textSecondary,
-                        fontSize: 14)),
+                const Text(
+                  'No pending seller applications',
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           );
@@ -452,9 +520,14 @@ class _SellersTab extends StatelessWidget {
           itemCount: docs.length,
           itemBuilder: (context, i) {
             final user = UserModel.fromMap(
-                docs[i].data() as Map<String, dynamic>, docs[i].id);
+              docs[i].data() as Map<String, dynamic>,
+              docs[i].id,
+            );
             return _SellerApprovalCard(
-                user: user, onApprove: onApprove, onReject: onReject);
+              user: user,
+              onApprove: onApprove,
+              onReject: onReject,
+            );
           },
         );
       },
@@ -483,9 +556,10 @@ class _SellerApprovalCard extends StatelessWidget {
         border: Border.all(color: AppColors.warning.withOpacity(0.4)),
         boxShadow: [
           BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 6,
-              offset: const Offset(0, 2))
+            color: AppColors.cardShadow,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -503,10 +577,11 @@ class _SellerApprovalCard extends StatelessWidget {
                         ? user.displayName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
-                        fontFamily: 'Sora',
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                        fontSize: 16),
+                      fontFamily: 'Sora',
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -514,17 +589,23 @@ class _SellerApprovalCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.displayName,
-                          style: const TextStyle(
-                              fontFamily: 'Sora',
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                              fontSize: 14)),
-                      Text(user.email,
-                          style: const TextStyle(
-                              fontFamily: 'Sora',
-                              color: AppColors.textSecondary,
-                              fontSize: 12)),
+                      Text(
+                        user.displayName,
+                        style: const TextStyle(
+                          fontFamily: 'Sora',
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        user.email,
+                        style: const TextStyle(
+                          fontFamily: 'Sora',
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -540,13 +621,17 @@ class _SellerApprovalCard extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.error),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Reject',
-                        style: TextStyle(
-                            fontFamily: 'Sora',
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Reject',
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -556,13 +641,17 @@ class _SellerApprovalCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Approve',
-                        style: TextStyle(
-                            fontFamily: 'Sora',
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Approve',
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -581,51 +670,59 @@ class _FlaggedTab extends StatelessWidget {
   final FirebaseFirestore firestore;
   final void Function(String, Color) showSnack;
 
-  const _FlaggedTab({
-    required this.firestore,
-    required this.showSnack,
-  });
+  const _FlaggedTab({required this.firestore, required this.showSnack});
 
   Future<void> _removeProduct(
-      BuildContext context, FirebaseFirestore firestore,
-      String productId, void Function(String, Color) showSnack) async {
+    BuildContext context,
+    FirebaseFirestore firestore,
+    String productId,
+    void Function(String, Color) showSnack,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Product?',
-            style: TextStyle(
-                fontFamily: 'Sora',
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
+        title: const Text(
+          'Remove Product?',
+          style: TextStyle(
+            fontFamily: 'Sora',
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
         content: const Text(
-            'This will deactivate the product. The seller will no longer see it listed.',
-            style: TextStyle(
-                fontFamily: 'Sora', color: AppColors.textSecondary)),
+          'This will deactivate the product. The seller will no longer see it listed.',
+          style: TextStyle(fontFamily: 'Sora', color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(
-                    fontFamily: 'Sora', color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Sora',
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove',
-                style: TextStyle(fontFamily: 'Sora', color: Colors.white)),
+            child: const Text(
+              'Remove',
+              style: TextStyle(fontFamily: 'Sora', color: Colors.white),
+            ),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      await firestore
-          .collection('products')
-          .doc(productId)
-          .update({'isActive': false, 'isFlagged': false});
+      await firestore.collection('products').doc(productId).update({
+        'isActive': false,
+        'isFlagged': false,
+      });
       showSnack('Product removed successfully', AppColors.error);
     }
   }
@@ -641,7 +738,8 @@ class _FlaggedTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         }
 
         final docs = snapshot.data?.docs ?? [];
@@ -651,14 +749,20 @@ class _FlaggedTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.verified_outlined,
-                    size: 56, color: AppColors.success.withOpacity(0.5)),
+                Icon(
+                  Icons.verified_outlined,
+                  size: 56,
+                  color: AppColors.success.withOpacity(0.5),
+                ),
                 const SizedBox(height: 12),
-                const Text('No flagged products',
-                    style: TextStyle(
-                        fontFamily: 'Sora',
-                        color: AppColors.textSecondary,
-                        fontSize: 14)),
+                const Text(
+                  'No flagged products',
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           );
@@ -673,8 +777,8 @@ class _FlaggedTab extends StatelessWidget {
             return _FlaggedProductCard(
               productId: productId,
               data: data,
-              onRemove: () => _removeProduct(
-                  context, firestore, productId, showSnack),
+              onRemove: () =>
+                  _removeProduct(context, firestore, productId, showSnack),
             );
           },
         );
@@ -705,9 +809,10 @@ class _FlaggedProductCard extends StatelessWidget {
         border: Border.all(color: AppColors.error.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 6,
-              offset: const Offset(0, 2))
+            color: AppColors.cardShadow,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -718,11 +823,13 @@ class _FlaggedProductCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: images.isNotEmpty
-                  ? Image.network(images.first,
+                  ? Image.network(
+                      images.first,
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder())
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
                   : _placeholder(),
             ),
             const SizedBox(width: 12),
@@ -730,20 +837,25 @@ class _FlaggedProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(data['name'] ?? 'Unknown Product',
-                      style: const TextStyle(
-                          fontFamily: 'Sora',
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                          fontSize: 14)),
+                  Text(
+                    data['name'] ?? 'Unknown Product',
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                      'LKR ${(data['price'] ?? 0).toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          fontFamily: 'Sora',
-                          color: AppColors.priceColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
+                    'LKR ${(data['price'] ?? 0).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      color: AppColors.priceColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   _Tag(label: '⚑ Flagged', color: AppColors.error),
                 ],
@@ -760,12 +872,15 @@ class _FlaggedProductCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        width: 56,
-        height: 56,
-        color: AppColors.background,
-        child: const Icon(Icons.image_outlined,
-            color: AppColors.textHint, size: 24),
-      );
+    width: 56,
+    height: 56,
+    color: AppColors.background,
+    child: const Icon(
+      Icons.image_outlined,
+      color: AppColors.textHint,
+      size: 24,
+    ),
+  );
 }
 
 // ── Shared tag widget ──────────────────────────────────────────────────────────
@@ -787,10 +902,11 @@ class _Tag extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-            fontFamily: 'Sora',
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: color),
+          fontFamily: 'Sora',
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }

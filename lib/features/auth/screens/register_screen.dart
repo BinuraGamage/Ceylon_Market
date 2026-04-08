@@ -32,17 +32,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref.read(authNotifierProvider.notifier).registerWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      displayName: _nameController.text.trim(),
-      role: _selectedRole,
-    );
+    await ref
+        .read(authNotifierProvider.notifier)
+        .registerWithEmail(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          displayName: _nameController.text.trim(),
+          role: _selectedRole,
+        );
 
     final authState = ref.read(authNotifierProvider);
-    authState.whenOrNull(
-      error: (e, _) => _showError(e.toString()),
-    );
+    authState.whenOrNull(error: (e, _) => _showError(e.toString()));
   }
 
   void _showError(String message) {
@@ -84,10 +84,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(
-                          Icons.storefront_rounded,
-                          color: AppColors.surface,
-                          size: 40,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Image.asset(
+                            'assets/icon.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -160,12 +162,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       color: AppColors.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3)),
+                        color: AppColors.primary.withOpacity(0.3),
+                      ),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline,
-                            color: AppColors.primary, size: 16),
+                        Icon(
+                          Icons.info_outline,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -203,8 +209,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   decoration: const InputDecoration(
                     hintText: 'Enter your full name',
-                    prefixIcon: Icon(Icons.person_outline,
-                        color: AppColors.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -239,8 +247,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   decoration: const InputDecoration(
                     hintText: 'Enter your email',
-                    prefixIcon: Icon(Icons.email_outlined,
-                        color: AppColors.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -275,8 +285,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: 'Create a password',
-                    prefixIcon: const Icon(Icons.lock_outline,
-                        color: AppColors.textSecondary),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.textSecondary,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -284,8 +296,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             : Icons.visibility_outlined,
                         color: AppColors.textSecondary,
                       ),
-                      onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (value) {
@@ -321,8 +333,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: 'Confirm your password',
-                    prefixIcon: const Icon(Icons.lock_outline,
-                        color: AppColors.textSecondary),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.textSecondary,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirm
@@ -449,7 +463,7 @@ class _RoleCard extends StatelessWidget {
                       color: AppColors.primary.withOpacity(0.25),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
-                    )
+                    ),
                   ]
                 : [],
           ),

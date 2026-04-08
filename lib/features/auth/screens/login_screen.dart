@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -26,24 +27,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleEmailLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref.read(authNotifierProvider.notifier).loginWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
+    await ref
+        .read(authNotifierProvider.notifier)
+        .loginWithEmail(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
 
     final authState = ref.read(authNotifierProvider);
-    authState.whenOrNull(
-      error: (e, _) => _showError(e.toString()),
-    );
+    authState.whenOrNull(error: (e, _) => _showError(e.toString()));
   }
 
   Future<void> _handleGoogleLogin() async {
     await ref.read(authNotifierProvider.notifier).signInWithGoogle();
 
     final authState = ref.read(authNotifierProvider);
-    authState.whenOrNull(
-      error: (e, _) => _showError(e.toString()),
-    );
+    authState.whenOrNull(error: (e, _) => _showError(e.toString()));
   }
 
   void _showError(String message) {
@@ -79,16 +78,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     children: [
                       Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.storefront_rounded,
-                          color: AppColors.surface,
-                          size: 40,
+                        width: 100,
+                        height: 100,
+                        child: Padding(
+                          padding: const EdgeInsets.all(1),
+                          child: Image.asset(
+                            'assets/icon.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -136,8 +133,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   decoration: const InputDecoration(
                     hintText: 'Enter your email',
-                    prefixIcon: Icon(Icons.email_outlined,
-                        color: AppColors.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -172,8 +171,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
-                    prefixIcon: const Icon(Icons.lock_outline,
-                        color: AppColors.textSecondary),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.textSecondary,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -181,8 +182,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : Icons.visibility_outlined,
                         color: AppColors.textSecondary,
                       ),
-                      onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (value) {
@@ -278,12 +279,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       backgroundColor: AppColors.surface,
                     ),
-                    icon: Image.network(
-                      'https://www.google.com/favicon.ico',
+                    icon: Image.asset(
+                      'assets/google_logo.png',
                       width: 20,
                       height: 20,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.g_mobiledata, size: 24),
+                      fit: BoxFit.contain,
                     ),
                     label: const Text(
                       'Continue with Google',

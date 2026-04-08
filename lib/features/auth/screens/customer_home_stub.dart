@@ -16,8 +16,11 @@ class CustomerHomeStub extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.shopping_bag_outlined,
-                size: 64, color: AppColors.primary),
+            const Icon(
+              Icons.shopping_bag_outlined,
+              size: 64,
+              color: AppColors.primary,
+            ),
             const SizedBox(height: 16),
             Text(
               'Welcome, ${user?.displayName ?? 'Customer'}!',
@@ -42,8 +45,10 @@ class CustomerHomeStub extends ConsumerWidget {
                 await ref.read(authNotifierProvider.notifier).signOut();
                 if (context.mounted) context.goNamed('login');
               },
-              child: const Text('Sign Out',
-                  style: TextStyle(fontFamily: 'Sora')),
+              child: const Text(
+                'Sign Out',
+                style: TextStyle(fontFamily: 'Sora'),
+              ),
             ),
           ],
         ),
