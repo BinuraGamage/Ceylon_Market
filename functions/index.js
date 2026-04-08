@@ -9,6 +9,58 @@ admin.initializeApp();
 const stripeSecretKey = functions.config().stripe?.test_secret || process.env.STRIPE_TEST_SECRET || 'sk_test_51RxQUx1MrHSdlzA0HJ5SGdXpozdCqWwE10qH6EMhCmY1cpPP9M8IaPPSGHN4OUA6JBeTXqSAmWb8rwKSGINUx6Sg007Vvmrjm2';
 const stripeInstance = new stripe(stripeSecretKey);
 
+const db = admin.firestore();
+
+async function sendNotificationToToken(token, payload) {
+  if (!token) return null;
+  try {
+    return await admin.messaging().send({
+      token,
+      notification: {
+        title: payload.title,
+        body: payload.body,
+      },
+      data: payload.data || {},
+    });
+  } catch (error) {
+    console.error('Error sending FCM message:', error);
+    return null;
+  }
+}
+
+async function sendNotificationToUser(userId, payload) {
+  if (!userId) return null;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return null;
+    const token = userDoc.get('fcmToken');
+    return await sendNotificationToToken(token, payload);
+  } catch (error) {
+    console.error('Error sending user notification:', error);
+    return null;
+  }
+}
+
+async function sendNotificationToAdmins(payload) {
+  try {
+    const adminsSnap = await db
+      .collection('users')
+      .where('role', '==', 'admin')
+      .get();
+    if (adminsSnap.empty) return null;
+
+    const tasks = [];
+    adminsSnap.forEach((doc) => {
+      const token = doc.get('fcmToken');
+      if (token) tasks.push(sendNotificationToToken(token, payload));
+    });
+    return await Promise.all(tasks);
+  } catch (error) {
+    console.error('Error sending admin notifications:', error);
+    return null;
+  }
+}
+
 /**
  * Creates a Stripe Payment Intent for LKR transactions
  * Called from Flutter app during checkout
@@ -158,3 +210,107 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   res.json({ received: true });
 });
+
+exports.notifyAdminsOnNewShop = functions.firestore
+  .document('shops/{shopId}')
+  .onCreate(async (snap, context) => {
+    const shop = snap.data() || {};
+    const shopName = shop.name || 'New shop';
+    const ownerId = shop.ownerId || '';
+
+    return sendNotificationToAdmins({
+      title: 'New shop pending approval',
+      body: `${shopName} submitted by a seller.`,
+      data: {
+        type: 'shop_created',
+        shopId: context.params.shopId,
+        ownerId: ownerId,
+      },
+    });
+  });
+
+exports.notifySellerOnNewOrder = functions.firestore
+  .document('orders/{orderId}')
+  .onCreate(async (snap, context) => {
+    const order = snap.data() || {};
+    const shopId = order.shopId;
+    const customerId = order.customerId || '';
+    if (!shopId) return null;
+
+    const shopDoc = await db.collection('shops').doc(shopId).get();
+    if (!shopDoc.exists) return null;
+    const ownerId = shopDoc.get('ownerId');
+    if (!ownerId) return null;
+
+    return sendNotificationToUser(ownerId, {
+      title: 'New order received',
+      body: `Order ${context.params.orderId} has been placed.`,
+      data: {
+        type: 'order_created',
+        orderId: context.params.orderId,
+        shopId: shopId,
+        customerId: customerId,
+      },
+    });
+  });
+
+exports.notifyOnCustomRequest = functions.firestore
+  .document('customRequests/{requestId}')
+  .onCreate(async (snap, context) => {
+    const request = snap.data() || {};
+    const requestId = context.params.requestId;
+    const type = request.type || 'customization';
+    const shopId = request.shopId;
+    const designerId = request.designerId;
+    const customerId = request.customerId || '';
+
+    if (type === 'ar_model' && designerId) {
+      return sendNotificationToUser(designerId, {
+        title: 'New AR model task',
+        body: 'A new 3D model request has been assigned to you.',
+        data: {
+          type: 'ar_model_request',
+          requestId: requestId,
+          productId: request.productId || '',
+        },
+      });
+    }
+
+    if (!shopId) return null;
+    const shopDoc = await db.collection('shops').doc(shopId).get();
+    if (!shopDoc.exists) return null;
+    const ownerId = shopDoc.get('ownerId');
+    if (!ownerId) return null;
+
+    return sendNotificationToUser(ownerId, {
+      title: 'New custom request',
+      body: 'A customer submitted a customization request.',
+      data: {
+        type: 'custom_request',
+        requestId: requestId,
+        shopId: shopId,
+        customerId: customerId,
+      },
+    });
+  });
+
+exports.notifyCustomerOnOrderStatus = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data() || {};
+    const after = change.after.data() || {};
+
+    if (before.status === after.status) return null;
+    const customerId = after.customerId;
+    if (!customerId) return null;
+
+    return sendNotificationToUser(customerId, {
+      title: 'Order status updated',
+      body: `Your order is now ${after.status || 'updated'}.`,
+      data: {
+        type: 'order_status',
+        orderId: context.params.orderId,
+        status: after.status || '',
+      },
+    });
+  });

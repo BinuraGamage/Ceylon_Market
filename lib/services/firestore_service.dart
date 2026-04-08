@@ -4,6 +4,7 @@ import '../core/constants/firestore_paths.dart';
 import '../models/cart_item_model.dart';
 import '../models/custom_request_model.dart';
 import '../models/custom_request_message_model.dart';
+import '../models/notification_model.dart';
 import '../models/order_model.dart';
 import '../models/product_model.dart';
 import '../models/review_model.dart';
@@ -21,6 +22,27 @@ class FirestoreService {
   static final FirestoreService instance = FirestoreService._();
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Shared — User profile updates
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> updateUserFcmToken({
+    required String uid,
+    required String? token,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'fcmToken': token == null || token.isEmpty
+            ? FieldValue.delete()
+            : token,
+      };
+      await _db.doc(FirestorePaths.userDoc(uid)).update(updates);
+    } catch (e) {
+      debugPrint('[FirestoreService] updateUserFcmToken error: $e');
+      rethrow;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // M2 — Product Discovery & Search
@@ -73,8 +95,9 @@ class FirestoreService {
           final list = snap.docs
               .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
               .where((product) {
-                final productCategory =
-                    ProductCategory.normalizeCategoryKey(product.category);
+                final productCategory = ProductCategory.normalizeCategoryKey(
+                  product.category,
+                );
 
                 if (normalizedCategory.isEmpty || normalizedCategory == 'all') {
                   return true;
@@ -214,8 +237,9 @@ class FirestoreService {
       final candidates = snap.docs
           .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
           .where((product) {
-            final normalizedCategory =
-                ProductCategory.normalizeCategoryKey(product.category);
+            final normalizedCategory = ProductCategory.normalizeCategoryKey(
+              product.category,
+            );
             final haystack = <String>{
               product.name.toLowerCase(),
               product.description.toLowerCase(),
@@ -228,8 +252,9 @@ class FirestoreService {
           .toList();
 
       int score(ProductModel product) {
-        final normalizedCategory =
-            ProductCategory.normalizeCategoryKey(product.category);
+        final normalizedCategory = ProductCategory.normalizeCategoryKey(
+          product.category,
+        );
         final haystack = <String>{
           product.name.toLowerCase(),
           product.description.toLowerCase(),
@@ -241,7 +266,9 @@ class FirestoreService {
         for (final term in terms) {
           if (haystack.contains(term)) matched++;
         }
-        return (matched * 100) + product.viewCount + (product.avgRating * 10).toInt();
+        return (matched * 100) +
+            product.viewCount +
+            (product.avgRating * 10).toInt();
       }
 
       candidates.sort((a, b) {
@@ -885,6 +912,8 @@ class FirestoreService {
         updatedAt: DateTime.now(),
       );
       await doc.set(payload.toMap());
+
+      await _notifySellerForOrder(orderId: doc.id, shopId: order.shopId);
       return doc.id;
     } catch (e) {
       debugPrint('[FirestoreService] createOrder error: $e');
@@ -930,10 +959,28 @@ class FirestoreService {
     required String status,
   }) async {
     try {
+      final orderDoc = await _db.doc(FirestorePaths.orderDoc(orderId)).get();
+      final customerId = orderDoc.data()?['customerId'] as String?;
+
       await _db.doc(FirestorePaths.orderDoc(orderId)).update({
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      if (customerId != null && customerId.isNotEmpty) {
+        await createNotification(
+          NotificationModel(
+            notificationId: '',
+            recipientId: customerId,
+            title: 'Order status updated',
+            body: 'Your order is now $status.',
+            type: 'order_status',
+            data: {'orderId': orderId, 'status': status},
+            isRead: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('[FirestoreService] updateOrderStatus error: $e');
       rethrow;
@@ -977,6 +1024,8 @@ class FirestoreService {
         updatedAt: now,
       );
       await doc.set(payload.toMap());
+
+      await _notifyForCustomRequest(payload, doc.id);
       return doc.id;
     } catch (e) {
       debugPrint('[FirestoreService] createCustomRequest error: $e');
@@ -1203,6 +1252,127 @@ class FirestoreService {
           .toList();
     } catch (e) {
       debugPrint('[FirestoreService] suggestShopsForInquiry error: $e');
+      rethrow;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Notifications (Firestore-stored)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> createNotification(NotificationModel notification) async {
+    try {
+      final doc = _db.collection(FirestorePaths.notifications).doc();
+      await doc.set(notification.copyWith(notificationId: doc.id).toMap());
+    } catch (e) {
+      debugPrint('[FirestoreService] createNotification error: $e');
+      rethrow;
+    }
+  }
+
+  Stream<List<NotificationModel>> watchNotificationsForUser(String uid) {
+    return _db
+        .collection(FirestorePaths.notifications)
+        .where('recipientId', isEqualTo: uid)
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    try {
+      await _db
+          .collection(FirestorePaths.notifications)
+          .doc(notificationId)
+          .update({'isRead': true});
+    } catch (e) {
+      debugPrint('[FirestoreService] markNotificationRead error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _notifySellerForOrder({
+    required String orderId,
+    required String shopId,
+  }) async {
+    if (shopId.isEmpty) return;
+    try {
+      final shopDoc = await _db
+          .collection(FirestorePaths.shops)
+          .doc(shopId)
+          .get();
+      final ownerId = shopDoc.data()?['ownerId'] as String?;
+      if (ownerId == null || ownerId.isEmpty) return;
+
+      await createNotification(
+        NotificationModel(
+          notificationId: '',
+          recipientId: ownerId,
+          title: 'New order received',
+          body: 'Order $orderId has been placed.',
+          type: 'order_created',
+          data: {'orderId': orderId, 'shopId': shopId},
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[FirestoreService] notifySellerForOrder error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _notifyForCustomRequest(
+    CustomRequestModel request,
+    String requestId,
+  ) async {
+    try {
+      if (request.type == 'ar_model' && request.designerId != null) {
+        await createNotification(
+          NotificationModel(
+            notificationId: '',
+            recipientId: request.designerId!,
+            title: 'New AR model task',
+            body: 'A new 3D model request has been assigned to you.',
+            type: 'ar_model_request',
+            data: {
+              'requestId': requestId,
+              'productId': request.productId ?? '',
+            },
+            isRead: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return;
+      }
+
+      if (request.shopId == null || request.shopId!.isEmpty) return;
+      final shopDoc = await _db
+          .collection(FirestorePaths.shops)
+          .doc(request.shopId)
+          .get();
+      final ownerId = shopDoc.data()?['ownerId'] as String?;
+      if (ownerId == null || ownerId.isEmpty) return;
+
+      await createNotification(
+        NotificationModel(
+          notificationId: '',
+          recipientId: ownerId,
+          title: 'New custom request',
+          body: 'A customer submitted a customization request.',
+          type: 'custom_request',
+          data: {'requestId': requestId, 'shopId': request.shopId ?? ''},
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[FirestoreService] notifyForCustomRequest error: $e');
       rethrow;
     }
   }
