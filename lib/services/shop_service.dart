@@ -415,20 +415,20 @@ class ShopService {
     final insights = <String>[];
     if (top.isNotEmpty) {
       insights.add(
-        '🔥 "${top.first.name}" is your top seller — consider restocking soon.',
+        '"${top.first.name}" is your top seller - consider restocking soon.',
       );
     }
     if (low.isNotEmpty) {
       insights.add(
-        '💡 Lowering the price on "${low.first.name}" could improve sales.',
+        'Lowering the price on "${low.first.name}" could improve sales.',
       );
     }
     if (repeatRate > 0.3) {
       insights.add(
-        '⭐ Great repeat customer rate! Reward loyal buyers with a promo code.',
+        'Great repeat customer rate! Reward loyal buyers with a promo code.',
       );
     }
-    insights.add('📢 Post new products around 8 PM for maximum visibility.');
+    insights.add('Post new products around 8 PM for maximum visibility.');
     return insights;
   }
 

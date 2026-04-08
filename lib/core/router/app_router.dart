@@ -68,7 +68,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Logged in but app user profile not set yet — stay on login until explicit auth flow completes
       if (currentUser == null) {
-        return isOnAuthScreen ? null : '/login';
+        // Wait for currentUserProvider hydration after app relaunch.
+        return null;
       }
 
       // Logged in and on an auth screen — redirect to their home

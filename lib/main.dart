@@ -11,6 +11,7 @@ import 'services/fcm_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
 import 'models/notification_model.dart';
+import 'models/user_model.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -72,15 +73,43 @@ class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
       next,
     ) async {
       final previousUid = previous?.value?.uid;
-      final nextUid = next.value?.uid;
+      final firebaseUser = next.value;
+      final nextUid = firebaseUser?.uid;
 
       if (nextUid != null && nextUid.isNotEmpty) {
+        // Keep app session persisted by hydrating the Firestore user profile
+        // whenever Firebase restores the auth session on app relaunch.
+        try {
+          final profile = await ref.read(authServiceProvider).getUserById(nextUid);
+          if (mounted) {
+            ref.read(currentUserProvider.notifier).state = profile;
+          }
+        } catch (e) {
+          debugPrint('[main] Failed to hydrate current user profile: $e');
+          if (mounted) {
+            // Fallback keeps session usable even if profile fetch is delayed.
+            ref.read(currentUserProvider.notifier).state = UserModel(
+              uid: nextUid,
+              email: firebaseUser?.email ?? '',
+              displayName: firebaseUser?.displayName ?? 'User',
+              photoUrl: firebaseUser?.photoURL,
+              role: 'customer',
+              status: 'active',
+              createdAt: DateTime.now(),
+            );
+          }
+        }
+
         await FcmService.instance.refreshTokenForUser(nextUid);
         return;
       }
 
       if (previousUid != null && previousUid.isNotEmpty) {
         await FcmService.instance.clearTokenForUser(previousUid);
+      }
+
+      if (mounted) {
+        ref.read(currentUserProvider.notifier).state = null;
       }
     });
 
