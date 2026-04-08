@@ -52,8 +52,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.tune_rounded,
-                    color: AppColors.textPrimary),
+                icon: const Icon(
+                  Icons.tune_rounded,
+                  color: AppColors.textPrimary,
+                ),
                 onPressed: () => _showFilterDrawer(context),
               ),
               if (filters.hasActiveFilters)
@@ -73,8 +75,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           // Image search button
           IconButton(
-            icon: const Icon(Icons.image_search_rounded,
-                color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.image_search_rounded,
+              color: AppColors.textPrimary,
+            ),
             onPressed: () => context.pushNamed('image-search'),
           ),
         ],
@@ -104,7 +108,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 
@@ -135,20 +139,21 @@ class _SearchField extends ConsumerWidget {
       autofocus: true,
       onChanged: (value) =>
           ref.read(searchQueryProvider.notifier).state = value,
-      style: const TextStyle(
-          fontSize: 15, color: AppColors.textPrimary),
+      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: 'Search crafts, clothing, furniture…',
-        hintStyle:
-            const TextStyle(color: AppColors.textHint, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
         filled: false,
         suffixIcon: controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear_rounded,
-                    color: AppColors.textHint, size: 18),
+                icon: const Icon(
+                  Icons.clear_rounded,
+                  color: AppColors.textHint,
+                  size: 18,
+                ),
                 onPressed: () {
                   controller.clear();
                   ref.read(searchQueryProvider.notifier).state = '';
@@ -177,9 +182,8 @@ class _ActiveFiltersRow extends ConsumerWidget {
           if (filters.category.isNotEmpty)
             _FilterChip(
               label: ProductCategory.label(filters.category),
-              onRemove: () => ref
-                  .read(searchCategoryFilterProvider.notifier)
-                  .state = '',
+              onRemove: () =>
+                  ref.read(searchCategoryFilterProvider.notifier).state = '',
             ),
           if (filters.minPrice != null)
             _FilterChip(
@@ -201,8 +205,7 @@ class _ActiveFiltersRow extends ConsumerWidget {
             },
             child: const Text(
               'Clear all',
-              style:
-                  TextStyle(color: AppColors.primary, fontSize: 12),
+              style: TextStyle(color: AppColors.primary, fontSize: 12),
             ),
           ),
         ],
@@ -241,8 +244,11 @@ class _FilterChip extends StatelessWidget {
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onRemove,
-            child: const Icon(Icons.close_rounded,
-                size: 14, color: AppColors.primary),
+            child: const Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: AppColors.primary,
+            ),
           ),
         ],
       ),
@@ -387,14 +393,12 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     hintText: 'Min',
                     prefixText: 'LKR ',
                   ),
-                  onChanged: (v) =>
-                      _minPrice = double.tryParse(v),
+                  onChanged: (v) => _minPrice = double.tryParse(v),
                 ),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text('—',
-                    style: TextStyle(color: AppColors.textHint)),
+                child: Text('—', style: TextStyle(color: AppColors.textHint)),
               ),
               Expanded(
                 child: TextField(
@@ -404,8 +408,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     hintText: 'Max',
                     prefixText: 'LKR ',
                   ),
-                  onChanged: (v) =>
-                      _maxPrice = double.tryParse(v),
+                  onChanged: (v) => _maxPrice = double.tryParse(v),
                 ),
               ),
             ],
@@ -444,8 +447,7 @@ class _CategoryOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.background,
           borderRadius: BorderRadius.circular(16),

@@ -534,10 +534,11 @@ class _ShopCompactHeader extends ConsumerWidget {
                         fit: BoxFit.cover,
                       ),
                     )
-                  : const Icon(
-                      Icons.storefront_rounded,
-                      color: AppColors.primary,
-                      size: 20,
+                  : Image.asset(
+                      'assets/icon.png',
+                      height: 20,
+                      width: 20,
+                      fit: BoxFit.contain,
                     ),
             ),
             const SizedBox(width: 8),
@@ -601,9 +602,12 @@ class _ShopPreview extends ConsumerWidget {
                           fit: BoxFit.cover,
                         ),
                       )
-                    : const Icon(
-                        Icons.storefront_rounded,
-                        color: AppColors.primary,
+                    : Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          'assets/icon.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
               ),
               const SizedBox(width: 12),

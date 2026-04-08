@@ -21,8 +21,7 @@ class CategoryBrowseScreen extends ConsumerStatefulWidget {
       _CategoryBrowseScreenState();
 }
 
-class _CategoryBrowseScreenState
-    extends ConsumerState<CategoryBrowseScreen> {
+class _CategoryBrowseScreenState extends ConsumerState<CategoryBrowseScreen> {
   /// Sort options
   static const _sortOptions = [
     _SortOption('Popular', 'popular'),
@@ -36,8 +35,7 @@ class _CategoryBrowseScreenState
 
   @override
   Widget build(BuildContext context) {
-    final productsAsync =
-        ref.watch(categoryProductsProvider(widget.category));
+    final productsAsync = ref.watch(categoryProductsProvider(widget.category));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,12 +60,13 @@ class _CategoryBrowseScreenState
           // Sort button
           TextButton.icon(
             onPressed: () => _showSortSheet(context),
-            icon: const Icon(Icons.sort_rounded,
-                color: AppColors.primary, size: 18),
+            icon: const Icon(
+              Icons.sort_rounded,
+              color: AppColors.primary,
+              size: 18,
+            ),
             label: Text(
-              _sortOptions
-                  .firstWhere((s) => s.value == _selectedSort)
-                  .label,
+              _sortOptions.firstWhere((s) => s.value == _selectedSort).label,
               style: AppTextStyles.link,
             ),
           ),
@@ -76,25 +75,26 @@ class _CategoryBrowseScreenState
       body: productsAsync.when(
         loading: () => const _CategoryGridSkeleton(),
         error: (e, _) => ErrorBanner(
-          message: 'Could not load ${ProductCategory.label(widget.category)} products.',
+          message:
+              'Could not load ${ProductCategory.label(widget.category)} products.',
           onRetry: () =>
               ref.invalidate(categoryProductsProvider(widget.category)),
         ),
         data: (products) {
           if (products.isEmpty) {
             return _EmptyCategory(
-                category: ProductCategory.label(widget.category));
+              category: ProductCategory.label(widget.category),
+            );
           }
           final sorted = _applySortOrder(products, _selectedSort);
           return _ProductGrid(products: sorted);
         },
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 
-  List<ProductModel> _applySortOrder(
-      List<ProductModel> products, String sort) {
+  List<ProductModel> _applySortOrder(List<ProductModel> products, String sort) {
     final list = List<ProductModel>.from(products);
     switch (sort) {
       case 'rating':
@@ -148,8 +148,11 @@ class _CategoryBrowseScreenState
                 contentPadding: EdgeInsets.zero,
                 title: Text(option.label, style: AppTextStyles.body),
                 trailing: _selectedSort == option.value
-                    ? const Icon(Icons.check_rounded,
-                        color: AppColors.primary, size: 20)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      )
                     : null,
                 onTap: () {
                   setState(() => _selectedSort = option.value);
@@ -182,10 +185,8 @@ class _ProductGrid extends StatelessWidget {
         mainAxisSpacing: 12,
         childAspectRatio: 0.7,
       ),
-      itemBuilder: (_, i) => ProductCard(
-        product: products[i],
-        width: double.infinity,
-      ),
+      itemBuilder: (_, i) =>
+          ProductCard(product: products[i], width: double.infinity),
     );
   }
 }

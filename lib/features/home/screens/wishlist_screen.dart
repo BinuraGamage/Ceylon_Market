@@ -32,7 +32,7 @@ class WishlistScreen extends ConsumerWidget {
           : user.wishlist.isEmpty
           ? _buildEmptyState(context)
           : _buildWishlistGrid(user.wishlist),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
     );
   }
 

@@ -157,15 +157,23 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                      child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.15,
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(user.role.toUpperCase(), style: AppTextStyles.caption),
+                          Text(
+                            user.role.toUpperCase(),
+                            style: AppTextStyles.caption,
+                          ),
                           Text(user.displayName, style: AppTextStyles.heading3),
                         ],
                       ),
@@ -206,7 +214,10 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Default Shipping Address', style: AppTextStyles.heading3),
+                    Text(
+                      'Default Shipping Address',
+                      style: AppTextStyles.heading3,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'This address will auto-fill at checkout.',
@@ -260,7 +271,7 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 }

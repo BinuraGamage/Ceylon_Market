@@ -57,20 +57,20 @@ class CustomerBottomNavBar extends StatelessWidget {
                   onTap: () => context.goNamed('customer-home'),
                 ),
                 _NavItem(
-                  icon: Icons.search_rounded,
-                  outlinedIcon: Icons.search_outlined,
-                  label: 'Search',
-                  index: 1,
-                  currentIndex: currentIndex,
-                  onTap: () => context.goNamed('search'),
-                ),
-                _NavItem(
                   icon: Icons.favorite_rounded,
                   outlinedIcon: Icons.favorite_border_rounded,
                   label: 'Wishlist',
-                  index: 2,
+                  index: 1,
                   currentIndex: currentIndex,
                   onTap: () => context.goNamed('wishlist'),
+                ),
+                _NavItem(
+                  icon: Icons.notifications_rounded,
+                  outlinedIcon: Icons.notifications_outlined,
+                  label: 'Alerts',
+                  index: 2,
+                  currentIndex: currentIndex,
+                  onTap: () => context.goNamed('notifications'),
                 ),
                 _NavItem(
                   icon: Icons.shopping_bag_rounded,
@@ -79,14 +79,6 @@ class CustomerBottomNavBar extends StatelessWidget {
                   index: 3,
                   currentIndex: currentIndex,
                   onTap: () => context.goNamed('cart'),
-                ),
-                _NavItem(
-                  icon: Icons.person_rounded,
-                  outlinedIcon: Icons.person_outline_rounded,
-                  label: 'Profile',
-                  index: 4,
-                  currentIndex: currentIndex,
-                  onTap: () => context.goNamed('profile'),
                 ),
               ],
             ),
@@ -143,14 +135,14 @@ class _NavItem extends StatelessWidget {
             children: [
               Icon(
                 isActive ? icon : outlinedIcon,
-                color: isActive ? AppColors.navActive : AppColors.navInactive,
+                color: isActive ? AppColors.navActive : const Color.fromARGB(255, 194, 138, 101),
                 size: 22,
               ),
               const SizedBox(height: 3),
               Text(
                 label,
                 style: AppTextStyles.navLabel.copyWith(
-                  color: isActive ? AppColors.navActive : AppColors.navInactive,
+                  color: isActive ? AppColors.navActive : const Color.fromARGB(255, 194, 138, 101),
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),

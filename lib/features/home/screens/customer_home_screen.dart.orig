@@ -17,8 +17,6 @@ class CustomerHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(homeSelectedCategoryProvider);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 0),
@@ -28,62 +26,57 @@ class CustomerHomeScreen extends ConsumerWidget {
             const _HomeAppBar(),
             const _SearchBar(),
             const _CategoryChips(),
-            if (selectedCategory.isEmpty) ...[
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                color: AppColors.surface,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Custom design service',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: AppColors.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Custom design service',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
                             ),
-                            SizedBox(height: 4),
-                            Text('Request bespoke orders or submit an inquiry'),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: 4),
+                          Text('Request bespoke orders or submit an inquiry'),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () => context.pushNamed('custom-inquiry'),
-                        child: const Text('Start'),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => context.pushNamed('custom-inquiry'),
+                      child: const Text('Start'),
+                    ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: OutlinedButton(
-                  onPressed: () => context.pushNamed('my-requests'),
-                  child: const Text('View My Requests'),
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: OutlinedButton(
+                onPressed: () => context.pushNamed('my-requests'),
+                child: const Text('View My Requests'),
               ),
-              const _SectionHeader(
-                title: 'Trending',
-                // TODO: Implement search with filtering if needed, for now just navigates
-                // onSeeAll: () => context.goNamed('search'),
-              ),
-              _TrendingRow(),
-              const SizedBox(height: 12),
-              _ShopRows(),
-            ] else ...[
-              const SizedBox(height: 12),
-              _CategoryProductGrid(category: selectedCategory),
-            ],
+            ),
+            const _SectionHeader(
+              title: 'Trending',
+              // TODO: Implement search with filtering if needed, for now just navigates
+              // onSeeAll: () => context.goNamed('search'),
+            ),
+            _TrendingRow(),
+            const SizedBox(height: 12),
+            _ShopRows(),
             const SizedBox(height: 24),
           ],
         ),
@@ -137,7 +130,8 @@ class _HomeAppBar extends ConsumerWidget {
               ],
             ),
           ),
-
+          
+          
           IconButton(
             icon: const Icon(
               Icons.search_rounded,
@@ -473,56 +467,6 @@ class _EmptyRow extends StatelessWidget {
           style: const TextStyle(color: AppColors.textHint, fontSize: 13),
         ),
       ),
-    );
-  }
-}
-
-// ── Category Product Grid ───────────────────────────────────────────────────
-
-class _CategoryProductGrid extends ConsumerWidget {
-  final String category;
-
-  const _CategoryProductGrid({required this.category});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final productsAsync = ref.watch(categoryProductsProvider(category));
-
-    return productsAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: ShimmerProductRow(),
-      ),
-      error: (e, _) => ErrorBanner(
-        message: 'Could not load products.',
-        onRetry: () => ref.invalidate(categoryProductsProvider(category)),
-      ),
-      data: (products) {
-        if (products.isEmpty) {
-          return const _EmptyRow(message: 'No products in this category yet.');
-        }
-        return GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.68,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-          ),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            return SizedBox(
-              height: 265,
-              child: ProductCard(
-                product: products[index],
-                width: double.infinity,
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

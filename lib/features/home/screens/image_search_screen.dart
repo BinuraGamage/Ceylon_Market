@@ -59,7 +59,7 @@ class ImageSearchScreen extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const CustomerBottomNavBar(currentIndex: -1),
     );
   }
 
