@@ -7,6 +7,7 @@ import '../../features/home/screens/customer_home_screen.dart';
 import '../../features/customization/screens/custom_inquiry_screen.dart';
 import '../../features/customization/screens/designer_dashboard_screen.dart';
 import '../../features/customization/screens/my_requests_screen.dart';
+import '../../features/customization/screens/seller_custom_requests_screen.dart';
 import '../../features/customization/screens/custom_request_detail_screen.dart';
 import '../../features/auth/screens/admin_dashboard_stub.dart';
 import '../../features/home/screens/product_detail_screen.dart';
@@ -105,6 +106,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'customer-home',
         path: '/customer',
         builder: (context, state) => const CustomerHomeScreen(),
+      ),
+      GoRoute(
+        name: 'shops-map',
+        path: '/shops-map',
+        builder: (context, state) => const ShopMapScreen(),
       ),
 
       // ── Seller (M3) ───────────────────────────────────────────────────────
