@@ -41,14 +41,19 @@ class DesignerDashboardScreen extends ConsumerWidget {
           }
 
           final tabs = <({String label, List<CustomRequestModel> requests})>[
-            (label: 'New', requests: requests.where((r) => r.status == 'pending').toList()),
+            (
+              label: 'New',
+              requests: requests.where((r) => r.status == 'pending').toList(),
+            ),
             (
               label: 'Assigned',
               requests: requests.where((r) => r.status == 'assigned').toList(),
             ),
             (
               label: 'In Progress',
-              requests: requests.where((r) => r.status == 'in_progress').toList(),
+              requests: requests
+                  .where((r) => r.status == 'in_progress')
+                  .toList(),
             ),
             (
               label: 'Completed',

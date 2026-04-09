@@ -80,7 +80,9 @@ class _SelaMarketAppState extends ConsumerState<SelaMarketApp> {
         // Keep app session persisted by hydrating the Firestore user profile
         // whenever Firebase restores the auth session on app relaunch.
         try {
-          final profile = await ref.read(authServiceProvider).getUserById(nextUid);
+          final profile = await ref
+              .read(authServiceProvider)
+              .getUserById(nextUid);
           if (mounted) {
             ref.read(currentUserProvider.notifier).state = profile;
           }

@@ -513,23 +513,31 @@ class _CustomRequestDetailScreenState
                           }
                           return Column(
                             children: messages.map((message) {
-                              final isSelf = message.senderId == currentUser?.uid;
+                              final isSelf =
+                                  message.senderId == currentUser?.uid;
                               return Align(
                                 alignment: isSelf
                                     ? Alignment.centerRight
                                     : Alignment.centerLeft,
                                 child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
                                     color: isSelf
-                                        ? AppColors.primary.withValues(alpha: 0.1)
+                                        ? AppColors.primary.withValues(
+                                            alpha: 0.1,
+                                          )
                                         : AppColors.surface,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: AppColors.divider),
+                                    border: Border.all(
+                                      color: AppColors.divider,
+                                    ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${message.senderName} • ${message.sentAt.toLocal().toString().split('.').first}',
