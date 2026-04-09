@@ -47,6 +47,10 @@
 - [Data Model Overview](#data-model-overview)
 - [Scripts](#scripts)
 - [Testing and Quality](#testing-and-quality)
+
+- <h4>admin crendentials</h4>
+<P> email : binura@gmail.com</P>
+<p> password : binura2002</p>
 - [Roadmap](#roadmap)
 - [Development Notes](#development-notes)
 - [Resources](#resources)
