@@ -33,8 +33,21 @@ final trendingProductsProvider = StreamProvider<List<ProductModel>>((ref) {
 });
 
 /// All active shops — for building shop rows on the home screen.
-final activeShopsProvider = FutureProvider<List<ShopModel>>((ref) {
-  return ref.read(firestoreServiceProvider).getActiveShops();
+final activeShopsProvider = FutureProvider<List<ShopModel>>((ref) async {
+  final service = ref.read(firestoreServiceProvider);
+  final shops = await service.getActiveShops();
+
+  // Show newest shops first on the customer home page.
+  shops.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  final filtered = await Future.wait(
+    shops.map((shop) async {
+      final products = await service.getProductsByShop(shop.shopId, limit: 1);
+      return products.isNotEmpty ? shop : null;
+    }),
+  );
+
+  return filtered.whereType<ShopModel>().toList();
 });
 
 /// Shops used by the customer map view.
